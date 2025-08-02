@@ -3,7 +3,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 
 class DropList(QListWidget):
-    # En kolayı: argümansız sinyal kullan
+    # Easiest: use signal without arguments
     filesChanged = Signal()
 
     def __init__(self, parent=None):
@@ -20,7 +20,7 @@ class DropList(QListWidget):
     def dragEnterEvent(self, e):
         self._accept_if_ok(e)
 
-    # >>> EKLE: hareket sırasında da kabul et
+    # >>> ADD: also accept during movement
     def dragMoveEvent(self, e):
         self._accept_if_ok(e)
 
@@ -48,8 +48,8 @@ class DropList(QListWidget):
             if p.is_file() and self._is_allowed(p):
                 sp = str(p)
                 if sp not in existing_paths:
-                    it = QListWidgetItem(p.name)      # sadece dosya adı göster
-                    it.setData(Qt.UserRole, sp)       # tam yol sakla
+                    it = QListWidgetItem(p.name)      # show file name only
+                    it.setData(Qt.UserRole, sp)       # hide full path
                     self.addItem(it)
                     added += 1
 
@@ -67,7 +67,7 @@ class DropList(QListWidget):
         else:
             super().keyPressEvent(e)
     
-        # Sağ tık menüsü (opsiyonel)
+        # Right click menu (optional)
     def contextMenuEvent(self, e):
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
