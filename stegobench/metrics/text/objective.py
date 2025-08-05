@@ -16,13 +16,16 @@ Design goals
 
 Usage
 -----
-from stegobench.metrics import (
+from stegobench.metrics.text.objective import (
     text_similarity, text_levenshtein, text_jaccard
 )
 
 sim = text_similarity("orig.txt", "stego.txt")   # % in [0..100]
+
 lev = text_levenshtein("orig.txt", "stego.txt")  # integer distance
+
 jac = text_jaccard("orig.txt", "stego.txt", level="word")     # % in [0..100]
+
 jac3 = text_jaccard("orig.txt", "stego.txt", level="ngram", n=3)  # 3-gram
 
 Notes

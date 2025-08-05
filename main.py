@@ -5,9 +5,9 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 
-from stegobench.metrics.audio import audio_mse, audio_psnr, audio_snr
-from stegobench.metrics.image import image_mse, image_psnr, image_ssim, image_ber
-from stegobench.metrics.text import text_similarity, text_levenshtein, text_jaccard
+from stegobench.metrics.audio.objective import audio_mse, audio_psnr, audio_snr
+from stegobench.metrics.image.objective import image_mse, image_psnr, image_ssim, image_ber
+from stegobench.metrics.text.objective import text_similarity, text_levenshtein, text_jaccard
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (

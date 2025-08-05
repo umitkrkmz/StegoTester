@@ -1,12 +1,10 @@
-# stegosbench/__init__.py
-from .metrics import (
-    image_psnr, image_ssim, image_ber, image_mse,
-    audio_psnr, audio_snr, audio_mse,
-    text_similarity, text_levenshtein, text_jaccard
-)
+"""
+StegoBench: A modular benchmarking toolkit for steganography.
 
-__all__ = [
-    "image_psnr", "image_ssim", "image_ber", "image_mse",
-    "audio_psnr", "audio_snr", "audio_mse",
-    "text_similarity", "text_levenshtein", "text_jaccard",
-]
+This package provides unified access to various modality-specific metrics
+(audio, image, text) used in evaluating steganographic systems.
+"""
+
+from . import metrics
+
+__all__ = ["metrics"]

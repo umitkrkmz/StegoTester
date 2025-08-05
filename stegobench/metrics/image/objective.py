@@ -1,33 +1,40 @@
 """
-Image quality/stego metrics for StegoBench.
+Objective image quality metrics for steganography analysis.
 
-This module provides simple, dependency-light metrics that operate on file paths:
+This module provides basic, dependency-light image quality metrics that operate
+on file paths. Metrics are designed to detect perceptual and bit-level
+differences between two images — typically a cover and a stego version.
+
+Included Metrics
+----------------
 - Mean Squared Error (MSE)
 - Peak Signal-to-Noise Ratio (PSNR)
-- Structural Similarity (SSIM)  [optional, requires scikit-image]
-- Bit Error Rate over bit-planes (BER) — useful for LSB-based stego analysis
+- Structural Similarity Index (SSIM)     [optional, requires scikit-image]
+- Bit Error Rate over bit-planes (BER)   [for LSB-based analysis]
 
 Usage
 -----
-from stegobench.metrics import image_psnr, image_ssim, image_ber, image_mse
+from stegobench.metrics.image.objective import (
+    image_mse,
+    image_psnr,
+    image_ssim,
+    image_ber,
+)
 
 psnr_val = image_psnr("orig.png", "stego.png")
-ssim_val = image_ssim("orig.png", "stego.png")           # greyscale SSIM
-ssim_rgb = image_ssim("orig.png", "stego.png", use_color=True)  # color SSIM
+ssim_val = image_ssim("orig.png", "stego.png")               # grayscale SSIM
+ssim_rgb = image_ssim("orig.png", "stego.png", use_color=True)  # RGB SSIM
 ber_val  = image_ber("orig.png", "stego.png", bitplane=0, channel="all")
 mse_val  = image_mse("orig.png", "stego.png")
 
 Notes
 -----
-* All image files are read from disk each call. If you need to compute multiple
-  metrics for the same pair repeatedly, consider caching loaded arrays to avoid
-  re-reading from disk.
-* MSE/PSNR operate in RGB (float32) with a [0..255] pixel range.
-* SSIM is computed in greyscale by default (per-scikit-image). Set use_color=True
-  for a color SSIM over RGB (requires scikit-image).
-* BER compares a single bit-plane between two images; for LSB stego,
-  use bitplane=0. You may restrict to a specific channel ('R','G','B').
+* All image files are read from disk each call. Cache arrays if performance matters.
+* MSE/PSNR operate in RGB float32 space, assuming [0..255] range.
+* SSIM defaults to greyscale. For color SSIM, pass `use_color=True` (requires scikit-image).
+* BER is useful for LSB-based stego methods; `bitplane=0` targets the LSB.
 """
+
 
 from __future__ import annotations
 

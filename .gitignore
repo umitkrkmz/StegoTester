@@ -23,13 +23,6 @@ Thumbs.db
 *.bak
 *.tmp
 
-# UI and Qt generated files (if recompiled)
-ui_*.py
-
-# PDF/TXT outputs (optional - remove if you want to version them)
-*.pdf
-*.txt
-
 # PyInstaller / dist output
 dist/
 build/
