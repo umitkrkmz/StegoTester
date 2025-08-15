@@ -1,3 +1,4 @@
+# stegobench\__init__.py
 """
 StegoBench: A modular benchmarking toolkit for steganography.
 

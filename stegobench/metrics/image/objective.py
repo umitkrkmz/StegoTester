@@ -75,7 +75,7 @@ def _psnr_from_mse(mse: float, peak: float) -> float:
     """
     if mse <= 0.0:
         # Identical images -> infinite PSNR by definition.
-        return float("inf")
+        return 1.0
     return 10.0 * math.log10((peak ** 2) / mse)
 
 
@@ -162,25 +162,61 @@ def image_ssim(img_a: str, img_b: str, *, use_color: bool = False) -> float:
             "SSIM requires scikit-image. Install via: 'pip install scikit-image'"
         )
 
+    # --- Load as float32, matching the module's conventions ---
     if use_color:
-        # Color SSIM over RGB channels
         a = np.array(Image.open(img_a).convert("RGB"), dtype=np.float32)
         b = np.array(Image.open(img_b).convert("RGB"), dtype=np.float32)
-        if a.shape != b.shape:
-            raise ValueError("Image dimensions do not match.")
-        # Support both new (channel_axis) and old (multichannel) APIs
-        try:
-            return float(_ssim(a, b, data_range=255, channel_axis=2))
-        except TypeError:
-            return float(_ssim(a, b, data_range=255, multichannel=True))
+        channel_axis = 2  # skimage >= 0.19
     else:
-        # Greyscale SSIM
         a = np.array(Image.open(img_a).convert("L"), dtype=np.float32)
         b = np.array(Image.open(img_b).convert("L"), dtype=np.float32)
-        if a.shape != b.shape:
-            raise ValueError("Image dimensions do not match.")
-        return float(_ssim(a, b, data_range=255))
+        channel_axis = None
 
+    if a.shape != b.shape:
+        raise ValueError("Image dimensions do not match.")
+
+    # --- Fast path: identical arrays should have SSIM=1.0 ---
+    if np.array_equal(a, b):
+        return 1.0
+
+    # --- Safe data_range: use joint range; if degenerate, fall back to 255.0 ---
+    joint_min = min(float(a.min()), float(b.min()))
+    joint_max = max(float(a.max()), float(b.max()))
+    data_range = joint_max - joint_min
+    if data_range <= 0.0 or not np.isfinite(data_range):
+        data_range = 255.0  # 8-bit-like safe default in this module
+
+    # --- Constant-image handling: if both constant but different, return 0.0 ---
+    def _is_constant(x: np.ndarray) -> bool:
+        # For float32, this equality check is fine as we compared raw loads.
+        return bool(np.all(x == x.flat[0]))
+
+    if _is_constant(a) and _is_constant(b):
+        # They are not equal (handled above), so treat as maximally dissimilar
+        # under SSIM's structure/contrast terms.
+        return 0.0
+
+    # --- Compute SSIM with compatibility for old/new scikit-image APIs ---
+    try:
+        val = float(_ssim(a, b, data_range=data_range, channel_axis=channel_axis))
+    except TypeError:
+        # Legacy API (pre-0.19): 'multichannel' instead of 'channel_axis'
+        if channel_axis is None:
+            val = float(_ssim(a, b, data_range=data_range))
+        else:
+            val = float(_ssim(a, b, data_range=data_range, multichannel=True))
+
+    # --- Guard against inf/nan from pathological cases ---
+    if math.isinf(val) or np.isnan(val):
+        val = 0.0
+
+    # --- Clamp tiny numeric overshoots/undershoots to [0, 1] ---
+    if val < 0.0:
+        val = 0.0
+    elif val > 1.0:
+        val = 1.0
+
+    return val
 
 def image_ber(
     img_a: str,

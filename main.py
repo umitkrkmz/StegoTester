@@ -5,10 +5,42 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 
-from stegobench.metrics.audio.objective import audio_mse, audio_psnr, audio_snr
-from stegobench.metrics.image.objective import image_mse, image_psnr, image_ssim, image_ber
-from stegobench.metrics.text.objective import text_similarity, text_levenshtein, text_jaccard
+# ---------- StegoBench imports ----------
+# Audio
+from stegobench.metrics.audio.objective import (
+    audio_mse, audio_psnr, audio_snr, audio_mae, audio_lsd
+)
+from stegobench.metrics.audio.perceptual import perceptual_score as audio_perceptual_score
+from stegobench.metrics.audio.payload import (
+    bitwise_ber as audio_bitwise_ber,
+    byte_accuracy as audio_byte_accuracy,
+    exact_match as audio_exact_match,
+)
 
+# Image
+from stegobench.metrics.image.objective import (
+    image_mse, image_psnr, image_ssim, image_ber
+)
+from stegobench.metrics.image.perceptual import (
+    image_dssim, image_lpips
+)
+from stegobench.metrics.image.payload import (
+    bitwise_ber as image_bitwise_ber,
+    byte_accuracy as image_byte_accuracy,
+    exact_match as image_exact_match,
+)
+
+# Text
+from stegobench.metrics.text.objective import (
+    text_similarity, text_levenshtein, text_jaccard
+)
+from stegobench.metrics.text.payload import (
+    exact_match as text_exact_match,
+    char_accuracy,
+    bitwise_ber as text_bitwise_ber,
+)
+
+# ---------- Qt ----------
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QGraphicsOpacityEffect,
@@ -17,12 +49,14 @@ from PySide6.QtWidgets import (
 
 from ui_form import Ui_MainWindow
 
+
 IMG_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
 AUD_EXT = {".wav"}
 TXT_EXT = {".txt", ".bin"}
 
+
 def fmt_val(v) -> str:
-    """Format metric values: 'inf' if infinite, int as-is, float with adaptive precision."""
+    """Format metric values nicely for display/export."""
     try:
         if v == float("inf"):
             return "inf"
@@ -35,8 +69,8 @@ def fmt_val(v) -> str:
     try:
         fval = float(v)
         if abs(fval) < 1e-4:
-            return f"{fval:.4e}"  # scientific display
-        return f"{fval:.4f}"      # normal display
+            return f"{fval:.4e}"
+        return f"{fval:.4f}"
     except Exception:
         return str(v)
 
@@ -46,28 +80,29 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        
+
         self.last_data_rows: list[dict] = []
 
-        # Initially disable metric groups until a compatible file is present
+        # Disable metric groups until compatible files exist
         self.set_group_state(self.ui.grb_audio_metrics, False)
         self.set_group_state(self.ui.grb_image_metrics, False)
         self.set_group_state(self.ui.grb_text_metrics,  False)
 
-        # Update metric availability when file lists change
+        # React to file list changes
         self.ui.lst_original.filesChanged.connect(self.update_metrics_availability)
         self.ui.lst_stego.filesChanged.connect(self.update_metrics_availability)
         self.ui.lst_extract.filesChanged.connect(self.update_metrics_availability)
 
-        # Allow all relevant extensions in all lists
+        # Allow all types in all lists
         self.ui.lst_original.allowed_ext = IMG_EXT | AUD_EXT | TXT_EXT
         self.ui.lst_stego.allowed_ext    = IMG_EXT | AUD_EXT | TXT_EXT
         self.ui.lst_extract.allowed_ext  = IMG_EXT | AUD_EXT | TXT_EXT
 
-        # ----------------------- Actions -----------------------
+        # Actions
         self.ui.btn_export_report.clicked.connect(self.on_export_report)
         self.ui.btn_compute.clicked.connect(self.run_metrics)
 
+    # ---------------- UI helpers ----------------
     def set_group_state(self, groupbox, enabled: bool, disabled_opacity: float = 0.4):
         """Enable/disable a group box and visually dim it when disabled."""
         groupbox.setEnabled(enabled)
@@ -76,8 +111,7 @@ class MainWindow(QMainWindow):
             eff = QGraphicsOpacityEffect(groupbox)
             groupbox.setGraphicsEffect(eff)
         eff.setOpacity(1.0 if enabled else disabled_opacity)
-    
-    
+
     def list_file_exts(self, lst) -> set[str]:
         """Collect (lowercased) file extensions from a custom list widget."""
         exts = set()
@@ -109,30 +143,42 @@ class MainWindow(QMainWindow):
         self.set_group_state(self.ui.grb_audio_metrics, has_aud)
         self.set_group_state(self.ui.grb_text_metrics,  has_txt)
 
-        
-        
+    # ------------- Selection (classic checkboxes) -------------
     def get_selected_metrics(self) -> dict[str, list[str]]:
         """Return selected metrics per data type, based on UI checkboxes."""
-        selected = {"audio": [], "image": [], "text": []}
+        sel = {"audio": [], "image": [], "text": []}
 
         # Audio
-        if self.ui.chk_audio_mse.isChecked():  selected["audio"].append("mse")
-        if self.ui.chk_audio_psnr.isChecked(): selected["audio"].append("psnr")
-        if self.ui.chk_audio_snr.isChecked():  selected["audio"].append("snr")
+        if self.ui.chk_audio_mse.isChecked():               sel["audio"].append("mse")
+        if self.ui.chk_audio_psnr.isChecked():              sel["audio"].append("psnr")
+        if self.ui.chk_audio_snr.isChecked():               sel["audio"].append("snr")
+        if self.ui.chk_audio_mae.isChecked():               sel["audio"].append("mae")
+        if self.ui.chk_audio_lsd.isChecked():               sel["audio"].append("lsd")
+        if self.ui.chk_audio_perceptual_score.isChecked():  sel["audio"].append("perceptual_score")
+        if self.ui.chk_audio_bitwise_ber.isChecked():       sel["audio"].append("bitwise_ber")
+        if self.ui.chk_audio_byte_accuracy.isChecked():     sel["audio"].append("byte_accuracy")
+        if self.ui.chk_audio_exact_match.isChecked():       sel["audio"].append("exact_match")
 
         # Image
-        if self.ui.chk_image_mse.isChecked():  selected["image"].append("mse")
-        if self.ui.chk_image_psnr.isChecked(): selected["image"].append("psnr")
-        if self.ui.chk_image_ssim.isChecked(): selected["image"].append("ssim")
-        if self.ui.chk_image_ber.isChecked():  selected["image"].append("ber")
+        if self.ui.chk_image_mse.isChecked():           sel["image"].append("mse")
+        if self.ui.chk_image_psnr.isChecked():          sel["image"].append("psnr")
+        if self.ui.chk_image_ssim.isChecked():          sel["image"].append("ssim")
+        if self.ui.chk_image_ber.isChecked():           sel["image"].append("ber")
+        if self.ui.chk_image_dssim.isChecked():         sel["image"].append("image_dssim")
+        if self.ui.chk_image_lpips.isChecked():         sel["image"].append("image_lpips")
+        if self.ui.chk_image_bitwise_ber.isChecked():   sel["image"].append("bitwise_ber")
+        if self.ui.chk_image_byte_accuracy.isChecked(): sel["image"].append("byte_accuracy")
+        if self.ui.chk_image_exact_match.isChecked():   sel["image"].append("exact_match")
 
         # Text
-        if self.ui.chk_text_similarity.isChecked():  selected["text"].append("similarity")
-        if self.ui.chk_text_levenshtein.isChecked(): selected["text"].append("levenshtein")
-        if self.ui.chk_text_jaccard.isChecked():     selected["text"].append("jaccard")
+        if self.ui.chk_text_similarity.isChecked():     sel["text"].append("similarity")
+        if self.ui.chk_text_levenshtein.isChecked():    sel["text"].append("levenshtein")
+        if self.ui.chk_text_jaccard.isChecked():        sel["text"].append("jaccard")
+        if self.ui.chk_text_exact_match.isChecked():    sel["text"].append("exact_match")
+        if self.ui.chk_text_char_accuracy.isChecked():  sel["text"].append("char_accuracy")
+        if self.ui.chk_text_bitwise_ber.isChecked():    sel["text"].append("bitwise_ber")
 
-        return selected
-
+        return sel
 
     def get_file_by_ext(self, lst, ext_list: set[str]) -> str | None:
         """Return the first file path from a list whose extension is in ext_list."""
@@ -143,7 +189,7 @@ class MainWindow(QMainWindow):
                 return str(path)
         return None
 
-    
+    # ---------------- Core compute ----------------
     def run_metrics(self):
         metrics = self.get_selected_metrics()
         if not any(metrics.values()):
@@ -159,7 +205,7 @@ class MainWindow(QMainWindow):
 
         data_rows: list[dict] = []
         try:
-            row = {"id": 1, "metrics": {}, "pairs": {}}  # pairs[dtype] = (ref, cmp)
+            row = {"id": 1, "metrics": {}, "pairs": {}}  # metrics: {"audio_mse": val, ...}
 
             # ------------ Audio ------------
             if metrics["audio"]:
@@ -172,9 +218,15 @@ class MainWindow(QMainWindow):
                     row["pairs"]["audio"] = (ref_audio, cmp_audio)
                     for met in metrics["audio"]:
                         match met:
-                            case "mse":  row["metrics"]["audio_mse"]  = audio_mse(ref_audio, cmp_audio)
-                            case "psnr": row["metrics"]["audio_psnr"] = audio_psnr(ref_audio, cmp_audio)
-                            case "snr":  row["metrics"]["audio_snr"]  = audio_snr(ref_audio, cmp_audio)
+                            case "mse":              row["metrics"]["audio_mse"]  = audio_mse(ref_audio, cmp_audio)
+                            case "psnr":             row["metrics"]["audio_psnr"] = audio_psnr(ref_audio, cmp_audio)
+                            case "snr":              row["metrics"]["audio_snr"]  = audio_snr(ref_audio, cmp_audio)
+                            case "mae":              row["metrics"]["audio_mae"]  = audio_mae(ref_audio, cmp_audio)
+                            case "lsd":              row["metrics"]["audio_lsd"]  = audio_lsd(ref_audio, cmp_audio)
+                            case "perceptual_score": row["metrics"]["audio_perceptual_score"] = audio_perceptual_score(ref_audio, cmp_audio)
+                            case "bitwise_ber":      row["metrics"]["audio_bitwise_ber"]      = audio_bitwise_ber(ref_audio, cmp_audio)
+                            case "byte_accuracy":    row["metrics"]["audio_byte_accuracy"]    = audio_byte_accuracy(ref_audio, cmp_audio)
+                            case "exact_match":      row["metrics"]["audio_exact_match"]      = audio_exact_match(ref_audio, cmp_audio)
 
             # ------------ Image ------------
             if metrics["image"]:
@@ -187,10 +239,15 @@ class MainWindow(QMainWindow):
                     row["pairs"]["image"] = (ref_img, cmp_img)
                     for met in metrics["image"]:
                         match met:
-                            case "mse":  row["metrics"]["image_mse"]  = image_mse(ref_img, cmp_img)
-                            case "psnr": row["metrics"]["image_psnr"] = image_psnr(ref_img, cmp_img)
-                            case "ssim": row["metrics"]["image_ssim"] = image_ssim(ref_img, cmp_img)
-                            case "ber":  row["metrics"]["image_ber"]  = image_ber(ref_img, cmp_img)
+                            case "mse":            row["metrics"]["image_mse"]  = image_mse(ref_img, cmp_img)
+                            case "psnr":           row["metrics"]["image_psnr"] = image_psnr(ref_img, cmp_img)
+                            case "ssim":           row["metrics"]["image_ssim"] = image_ssim(ref_img, cmp_img)
+                            case "ber":            row["metrics"]["image_ber"]  = image_ber(ref_img, cmp_img)
+                            case "image_dssim":    row["metrics"]["image_dssim"] = image_dssim(ref_img, cmp_img)
+                            case "image_lpips":    row["metrics"]["image_lpips"] = image_lpips(ref_img, cmp_img)
+                            case "bitwise_ber":    row["metrics"]["image_bitwise_ber"]   = image_bitwise_ber(ref_img, cmp_img)
+                            case "byte_accuracy":  row["metrics"]["image_byte_accuracy"] = image_byte_accuracy(ref_img, cmp_img)
+                            case "exact_match":    row["metrics"]["image_exact_match"]   = image_exact_match(ref_img, cmp_img)
 
             # ------------ Text ------------
             if metrics["text"] and orig_txt and extract and Path(extract).suffix in TXT_EXT:
@@ -199,12 +256,15 @@ class MainWindow(QMainWindow):
                 t2 = Path(extract).read_text(encoding="utf-8", errors="ignore")
                 for met in metrics["text"]:
                     match met:
-                        case "similarity":  row["metrics"]["text_similarity"]  = text_similarity(t1, t2)
-                        case "levenshtein": row["metrics"]["text_levenshtein"] = text_levenshtein(t1, t2)
-                        case "jaccard":     row["metrics"]["text_jaccard"]     = text_jaccard(t1, t2)
+                        case "similarity":    row["metrics"]["text_similarity"]    = text_similarity(t1, t2)
+                        case "levenshtein":   row["metrics"]["text_levenshtein"]   = text_levenshtein(t1, t2)
+                        case "jaccard":       row["metrics"]["text_jaccard"]       = text_jaccard(t1, t2)
+                        case "exact_match":   row["metrics"]["text_exact_match"]   = text_exact_match(t1, t2)
+                        case "char_accuracy": row["metrics"]["text_char_accuracy"]  = char_accuracy(t1, t2)
+                        case "bitwise_ber":   row["metrics"]["text_bitwise_ber"]   = text_bitwise_ber(t1, t2)
 
             data_rows.append(row)
-
+            
             # Show in-app; export only when user asks
             self.last_data_rows = data_rows
             self.populate_results_table(data_rows)
@@ -216,7 +276,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred:\n{e}")
 
-
+    # ---------------- Export ----------------
     def on_export_report(self):
         if not self.last_data_rows:
             QMessageBox.warning(self, "Export", "Please compute metrics first.")
@@ -252,28 +312,33 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "Export Format", "Please select an export format (TXT or PDF).")
 
+    # ---------------- TXT/PDF helpers ----------------
+    def _all_metric_keys(self, data_rows: list[dict]) -> list[str]:
+        """Union of metric keys across all rows (keeps dtype prefixes)."""
+        keys = set()
+        for row in data_rows:
+            keys |= set((row.get("metrics") or {}).keys())
+        # stable order: by dtype then name
+        def sort_key(k):
+            dtype, name = k.split("_", 1)
+            return ("AUDIO", "IMAGE", "TEXT").index(dtype.upper()), name
+        return sorted(keys, key=sort_key)
 
-
-#region Report Exporters
     def save_pdf_table(self, data_rows: list[dict], path: str, timestamp: str):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
 
+        # Title
         pdf.set_font("Helvetica", 'B', 16)
-        pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 10, "STEGANOGRAPHY METRICS REPORT", ln=True, align='L')
-
-        pdf.set_xy(160, 10)
+        pdf.cell(0, 10, "STEGANOGRAPHY METRICS REPORT", ln=True)
         pdf.set_font("Helvetica", 'I', 9)
-        pdf.set_text_color(100, 100, 100)
-        pdf.cell(40, 10, f"Generated on: {timestamp}", ln=1)
-        pdf.set_text_color(0, 0, 0)
-        pdf.ln(10)
+        pdf.cell(0, 6, f"Generated on: {timestamp}", ln=True)
+        pdf.ln(4)
 
         for row in data_rows:
             pdf.set_font("Helvetica", 'B', 12)
-            pdf.cell(0, 8, f"ID: {row.get('id','?')}", ln=1)
+            pdf.cell(0, 8, f"ID: {row.get('id','?')}", ln=True)
 
             metrics = row.get("metrics", {}) or {}
             pairs   = row.get("pairs", {}) or {}
@@ -287,36 +352,41 @@ class MainWindow(QMainWindow):
 
                 # Section header
                 pdf.set_font("Helvetica", 'B', 11)
-                pdf.cell(0, 6, f"[{dtype.upper()} METRICS]", ln=1)
+                pdf.cell(0, 6, f"[{dtype.upper()} METRICS]", ln=True)
 
                 # File names
                 pdf.set_font("Helvetica", '', 10)
-                pdf.cell(0, 6, f"Original: {Path(ref_path).name}", ln=1)
-                pdf.cell(0, 6, f"Compare:  {Path(cmp_path).name}", ln=1)
+                pdf.cell(0, 6, f"Original: {Path(ref_path).name}", ln=True)
+                pdf.cell(0, 6, f"Compare:  {Path(cmp_path).name}", ln=True)
 
                 if rel_keys:
+                    # Table header
                     pdf.set_fill_color(230, 230, 230)
                     pdf.set_draw_color(150, 150, 150)
                     pdf.set_font("Helvetica", 'B', 10)
-                    for key in rel_keys:
-                        pdf.cell(40, 8, key.replace(f"{dtype}_", "").upper(), border=1, fill=True, align='C')
+                    pdf.cell(40, 8, "Metric", border=1, fill=True, align='C')
+                    pdf.cell(40, 8, "Value", border=1, fill=True, align='C')
                     pdf.ln()
 
+                    # Table rows
                     pdf.set_font("Helvetica", '', 10)
                     for key in rel_keys:
+                        pdf.cell(40, 8, key.replace(f"{dtype}_", "").upper(), border=1, align='C')
                         pdf.cell(40, 8, fmt_val(metrics[key]), border=1, align='C')
-                    pdf.ln(10)
+                        pdf.ln()
+                    pdf.ln(4)
                 else:
                     pdf.set_font("Helvetica", 'I', 10)
                     pdf.set_text_color(120, 120, 120)
-                    pdf.cell(0, 6, "No metrics for this row.", ln=1)
+                    pdf.cell(0, 6, "No metrics for this row.", ln=True)
                     pdf.set_text_color(0, 0, 0)
                     pdf.ln(4)
 
             pdf.ln(5)
 
         pdf.output(path)
-    
+
+
     def save_txt_table(self, data_rows: list[dict], path: str, timestamp: str):
         lines = []
         lines.append("STEGANOGRAPHY METRICS REPORT")
@@ -340,8 +410,8 @@ class MainWindow(QMainWindow):
 
                 rel_keys = [k for k in metrics if k.startswith(f"{dtype}_")]
                 if rel_keys:
-                    lines.append("| Metric   | Value         |")
-                    lines.append("|----------|---------------|")
+                    lines.append("| Metric       | Value         |")
+                    lines.append("|--------------|---------------|")
                     for key in rel_keys:
                         label = key.replace(f"{dtype}_", "").upper().ljust(8)
                         value = fmt_val(metrics[key]).ljust(13)
@@ -351,66 +421,62 @@ class MainWindow(QMainWindow):
 
         Path(path).write_text("\n".join(lines), encoding="utf-8")
 
-#endregion
 
 
+    # ---------------- Results table (one column per metric) ----------------
     def populate_results_table(self, data_rows: list[dict]):
         tbl = self.ui.tbl_results
         if tbl is None:
             return
 
-        tbl.setColumnCount(5)
-        tbl.setHorizontalHeaderLabels(["ID", "Type", "Original", "Compare", "Metrics"])
+        metric_cols = self._all_metric_keys(data_rows)
+        headers = ["ID", "Type", "Original", "Compare"] + [h.upper() for h in metric_cols]
+
+        tbl.setColumnCount(len(headers))
+        tbl.setHorizontalHeaderLabels(headers)
         tbl.setRowCount(0)
 
-        # Flatten by dtype
+        # Flatten rows by dtype
         flat_rows = []
         for row in data_rows:
             for dtype in ("audio", "image", "text"):
                 if dtype in row.get("pairs", {}):
                     ref_path, cmp_path = row["pairs"][dtype]
-                    metrics = row.get("metrics", {}) or {}
-                    rel = {k: v for k, v in metrics.items() if k.startswith(f"{dtype}_")}
                     flat_rows.append({
                         "id": row.get("id", 1),
                         "dtype": dtype.upper(),
                         "ref": Path(ref_path).name,
                         "cmp": Path(cmp_path).name,
-                        "metrics": rel
+                        "metrics": row.get("metrics", {}) or {},
                     })
 
         tbl.setRowCount(len(flat_rows))
 
         for r, fr in enumerate(flat_rows):
-            metrics_lines = [
-                f"{k.split('_', 1)[1].upper()}: {fmt_val(v)}"
-                for k, v in fr["metrics"].items()
-            ]
-            metrics_text = "\n".join(metrics_lines) if metrics_lines else "(no metrics)"
+            row_vals = [str(fr["id"]), fr["dtype"], fr["ref"], fr["cmp"]]
+            for k in metric_cols:
+                row_vals.append(fmt_val(fr["metrics"].get(k, "")))
 
-            cells = [
-                QTableWidgetItem(str(fr["id"])),
-                QTableWidgetItem(fr["dtype"]),
-                QTableWidgetItem(fr["ref"]),
-                QTableWidgetItem(fr["cmp"]),
-                QTableWidgetItem(metrics_text),
-            ]
-            for c, it in enumerate(cells):
-                it.setFlags(it.flags() ^ Qt.ItemIsEditable)  # read-only
+            for c, txt in enumerate(row_vals):
+                it = QTableWidgetItem(txt)
+                it.setFlags(it.flags() ^ Qt.ItemIsEditable)
                 tbl.setItem(r, c, it)
 
-            # Let rows grow to fit multiline metric text
             tbl.resizeRowToContents(r)
 
+        # Auto-resize columns to fit content
+        tbl.resizeColumnsToContents()
+        tbl.horizontalHeader().setStretchLastSection(True)
 
-            
-# -------------------------------------- Main --------------------------------------
+
+# ------------------------------- Main -------------------------------
 def main():
-    plt.ioff()  # disable interactive Matplotlib windows
+    plt.ioff()
     app = QApplication(sys.argv)
-    widget = MainWindow()
-    widget.show()
+    w = MainWindow()
+    w.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
