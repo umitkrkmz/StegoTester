@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1222</width>
+    <height>628</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>StegoTester</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QGroupBox" name="grb_original">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>321</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Original</string>
+    </property>
+    <widget class="DropList" name="lst_original">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>301</width>
+       <height>111</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_extract">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>20</y>
+      <width>321</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Extract</string>
+    </property>
+    <widget class="DropList" name="lst_extract">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>301</width>
+       <height>111</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_stego">
+    <property name="geometry">
+     <rect>
+      <x>350</x>
+      <y>20</y>
+      <width>321</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Stego</string>
+    </property>
+    <widget class="DropList" name="lst_stego">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>301</width>
+       <height>111</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_audio_metrics">
+    <property name="geometry">
+     <rect>
+      <x>580</x>
+      <y>170</y>
+      <width>261</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Audio Metrics</string>
+    </property>
+    <widget class="QCheckBox" name="chk_audio_mse">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>MSE</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_psnr">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>80</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PSNR</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_snr">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>110</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>SNR</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_mae">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>MAE</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_lsd">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>20</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>LSD</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_perceptual_score">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>20</y>
+       <width>121</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>perceptual_score</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_bitwise_ber">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>50</y>
+       <width>121</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>bitwise_ber</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_byte_accuracy">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>80</y>
+       <width>121</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>byte_accuracy</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_audio_exact_match">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>110</y>
+       <width>121</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>exact_match</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_text_metrics">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>170</y>
+      <width>231</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Text Metrics</string>
+    </property>
+    <widget class="QCheckBox" name="chk_text_similarity">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Similarity</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_text_levenshtein">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Levenshtein</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_text_jaccard">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>80</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Jaccard</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_text_exact_match">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>20</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>exact_match</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_text_char_accuracy">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>50</y>
+       <width>101</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>char_accuracy</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_text_bitwise_ber">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>80</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>bitwise_ber</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_image_metrics">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>170</y>
+      <width>281</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Image Metrics</string>
+    </property>
+    <widget class="QCheckBox" name="chk_image_mse">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>MSE</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_psnr">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>71</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PSNR</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_ssim">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>80</y>
+       <width>71</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>SSIM</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_ber">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>110</y>
+       <width>71</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>BER</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_dssim">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>20</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>image_dssim</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_lpips">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>50</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>image_lpips</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_bitwise_ber">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>20</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>bitwise_ber</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_byte_accuracy">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>50</y>
+       <width>101</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>byte_accuracy</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="chk_image_exact_match">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>80</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>exact_match</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_export_format">
+    <property name="geometry">
+     <rect>
+      <x>1030</x>
+      <y>20</y>
+      <width>171</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Export format</string>
+    </property>
+    <widget class="QPushButton" name="btn_export_report">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>90</y>
+       <width>111</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Export Reports</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="rdb_export_txt">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>111</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Text Report (.txt)</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="rdb_export_pdf">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>89</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PDF (.pdf)</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="grb_results">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>320</y>
+      <width>1201</width>
+      <height>291</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Results</string>
+    </property>
+    <widget class="QTableWidget" name="tbl_results">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>1181</width>
+       <height>261</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="btn_compute">
+    <property name="geometry">
+     <rect>
+      <x>1050</x>
+      <y>180</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Compute</string>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DropList</class>
+   <extends>QListWidget</extends>
+   <header>droplist</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

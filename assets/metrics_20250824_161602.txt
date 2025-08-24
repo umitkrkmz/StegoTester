@@ -1,0 +1,14 @@
+STEGANOGRAPHY METRICS REPORT
+Generated on: 2025-08-24 16:16
+================================================================================
+ID | Orig_Audio                 | Stego_Audio                              | Orig_Image               | Extract_Image                                   | AUDIO_MSE  | AUDIO_PSNR | AUDIO_SNR | IMAGE_BER | IMAGE_MSE | IMAGE_PSNR | IMAGE_SSIM
+---+----------------------------+------------------------------------------+--------------------------+-------------------------------------------------+------------+------------+-----------+-----------+-----------+------------+-----------
+1  | orig_audio_sine.wav        | stego_001_alg1_sine_baboon.wav           | orig_image_baboon.png    | extract_001_alg1_baboon_from_sine.png           | 1.8552e-11 | 107.3160   | 99.2040   | 0         | 0         | inf        | 1.0000    
+2  | orig_audio_sine.wav        | stego_002_alg1_sine_pepper.wav           | orig_image_pepper.png    | extract_002_alg1_pepper_from_sine.png           | 1.8815e-11 | 107.2550   | 99.1462   | 0         | 0         | inf        | 1.0000    
+3  | orig_audio_sine.wav        | stego_003_alg1_sine_cameraman.wav        | orig_image_cameraman.png | extract_003_alg1_cameraman_from_sine.png        | 1.8625e-11 | 107.2991   | 99.1880   | 0         | 0         | inf        | 1.0000    
+4  | orig_audio_pink.wav        | stego_004_alg2_pink_baboon.wav           | orig_image_baboon.png    | extract_004_alg2_baboon_from_pink.png           | 2.7226e-11 | 105.6502   | 53.3577   | 0         | 0         | inf        | 1.0000    
+5  | orig_audio_pink.wav        | stego_005_alg2_pink_pepper.wav           | orig_image_pepper.png    | extract_005_alg2_pepper_from_pink.png           | 2.7317e-11 | 105.6356   | 53.3436   | 0         | 0         | inf        | 1.0000    
+6  | orig_audio_pink.wav        | stego_006_alg2_pink_cameraman.wav        | orig_image_cameraman.png | extract_006_alg2_cameraman_from_pink.png        | 2.7326e-11 | 105.6342   | 53.3423   | 0         | 0         | inf        | 1.0000    
+7  | orig_audio_femaleSpech.wav | stego_007_alg3_femaleSpech_baboon.wav    | orig_image_baboon.png    | extract_007_alg3_baboon_from_femaleSpech.png    | 5.3797e-11 | 102.6924   | 79.0796   | 0         | 0         | inf        | 1.0000    
+8  | orig_audio_femaleSpech.wav | stego_008_alg3_femaleSpech_pepper.wav    | orig_image_pepper.png    | extract_008_alg3_pepper_from_femaleSpech.png    | 5.5128e-11 | 102.5863   | 78.9754   | 0         | 0         | inf        | 1.0000    
+9  | orig_audio_femaleSpech.wav | stego_009_alg3_femaleSpech_cameraman.wav | orig_image_cameraman.png | extract_009_alg3_cameraman_from_femaleSpech.png | 6.0741e-11 | 102.1652   | 78.5614   | 0         | 0         | inf        | 1.0000    
