@@ -149,11 +149,17 @@ class Ui_MainWindow(object):
         self.tbl_results.setGeometry(QRect(10, 20, 1181, 261))
         self.btn_compute = QPushButton(self.centralwidget)
         self.btn_compute.setObjectName(u"btn_compute")
-        self.btn_compute.setGeometry(QRect(860, 180, 111, 41))
+        self.btn_compute.setGeometry(QRect(850, 270, 111, 41))
         self.progressBar = QProgressBar(self.centralwidget)
         self.progressBar.setObjectName(u"progressBar")
-        self.progressBar.setGeometry(QRect(980, 180, 221, 41))
+        self.progressBar.setGeometry(QRect(970, 270, 221, 41))
         self.progressBar.setValue(0)
+        self.btn_load_profile = QPushButton(self.centralwidget)
+        self.btn_load_profile.setObjectName(u"btn_load_profile")
+        self.btn_load_profile.setGeometry(QRect(1030, 170, 75, 31))
+        self.btn_save_profile = QPushButton(self.centralwidget)
+        self.btn_save_profile.setObjectName(u"btn_save_profile")
+        self.btn_save_profile.setGeometry(QRect(1120, 170, 75, 31))
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -199,5 +205,7 @@ class Ui_MainWindow(object):
         self.rdb_export_pdf.setText(QCoreApplication.translate("MainWindow", u"PDF (.pdf)", None))
         self.grb_results.setTitle(QCoreApplication.translate("MainWindow", u"Results", None))
         self.btn_compute.setText(QCoreApplication.translate("MainWindow", u"Compute", None))
+        self.btn_load_profile.setText(QCoreApplication.translate("MainWindow", u"Load Profile", None))
+        self.btn_save_profile.setText(QCoreApplication.translate("MainWindow", u"Save Profile", None))
     # retranslateUi
 
