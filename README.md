@@ -24,7 +24,7 @@ StegoTester is a desktop application designed for researchers, students, and dev
 - **Professional Reporting**: Export your analysis results in two different formats:
   - **TXT Report**: A clean, aligned text table containing all results.
   - **PDF Report**: A stylish and readable report, arranged vertically for each test (ID).
-
+- **Responsive UI:** Long calculations run in the background without freezing the application, with a progress bar showing the current status.
 ---
 
 ## Usage

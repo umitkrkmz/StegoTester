@@ -43,7 +43,7 @@ from stegobench.metrics.text.payload import (
 )
 
 # ---------- Qt ----------
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, QObject, Signal
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QGraphicsOpacityEffect,
     QFileDialog, QMessageBox, QTableWidgetItem,
@@ -140,6 +140,122 @@ def group_files(originals, stegos, extracts):
     return refs, groups
 
 
+
+# ---------------- Metric Worker ----------------
+class MetricWorker(QObject):
+    finished = Signal(list)  # When the calculation is completed, the result is returned in [list] type.
+    progress = Signal(int)   # Reports progress as [int] (0-100)
+    error = Signal(str)      # If an error occurs, an error message is returned as [str]
+
+    def __init__(self, originals, stegos, extracts, metrics):
+        super().__init__()
+        # Store data from MainWindow
+        self.originals = originals
+        self.stegos = stegos
+        self.extracts = extracts
+        self.metrics = metrics
+
+    def run(self):
+        """This function will run in the background and calculate metrics."""
+        try:
+            refs, groups = group_files(self.originals, self.stegos, self.extracts)
+            data_rows = []
+            
+            total_groups = len(groups)
+            if total_groups == 0:
+                self.progress.emit(100)
+                self.finished.emit([])
+                return
+
+            for i, (gid, data) in enumerate(sorted(groups.items())):
+                row = {"id": gid, "metrics": {}, "pairs": {}}
+                
+                # Audio: original vs. stego
+                if self.metrics["audio"] and refs["audio"] and data["stego"]:
+                    cmp_audio_path = data["stego"][0]
+                    cmp_audio_name = Path(cmp_audio_path).name
+                    ref_audio_path = None
+                    
+                    for key, path in refs["audio"].items():
+                        if key in cmp_audio_name:
+                            ref_audio_path = path
+                            break
+                    
+                    if ref_audio_path:
+                        row["pairs"]["audio"] = (ref_audio_path, cmp_audio_path)
+                        for met in self.metrics["audio"]:
+                            match met:
+                                case "mse": row["metrics"]["audio_mse"] = audio_mse(ref_audio_path, cmp_audio_path)
+                                case "psnr": row["metrics"]["audio_psnr"] = audio_psnr(ref_audio_path, cmp_audio_path)
+                                case "snr": row["metrics"]["audio_snr"] = audio_snr(ref_audio_path, cmp_audio_path)
+                                case "mae": row["metrics"]["audio_mae"] = audio_mae(ref_audio_path, cmp_audio_path)
+                                case "lsd": row["metrics"]["audio_lsd"] = audio_lsd(ref_audio_path, cmp_audio_path)
+                                case "perceptual_score": row["metrics"]["audio_perceptual_score"] = audio_perceptual_score(ref_audio_path, cmp_audio_path)
+                                case "bitwise_ber": row["metrics"]["audio_bitwise_ber"] = audio_bitwise_ber(ref_audio_path, cmp_audio_path)
+                                case "byte_accuracy": row["metrics"]["audio_byte_accuracy"] = audio_byte_accuracy(ref_audio_path, cmp_audio_path)
+                                case "exact_match": row["metrics"]["audio_exact_match"] = audio_exact_match(ref_audio_path, cmp_audio_path)                
+
+                # Image: original vs. extract
+                if self.metrics["image"] and refs["image"] and data["extract"]:
+                    cmp_img_path = data["extract"][0]
+                    cmp_img_name = Path(cmp_img_path).name
+                    ref_img_path = None
+
+                    for key, path in refs["image"].items():
+                        if key in cmp_img_name:
+                            ref_img_path = path
+                            break
+                    
+                    if ref_img_path:
+                        row["pairs"]["image"] = (ref_img_path, cmp_img_path)
+                        for met in self.metrics["image"]:
+                            match met:
+                                case "mse": row["metrics"]["image_mse"] = image_mse(ref_img_path, cmp_img_path)
+                                case "psnr": row["metrics"]["image_psnr"] = image_psnr(ref_img_path, cmp_img_path)
+                                case "ssim": row["metrics"]["image_ssim"] = image_ssim(ref_img_path, cmp_img_path)
+                                case "ber": row["metrics"]["image_ber"] = image_ber(ref_img_path, cmp_img_path)
+                                case "image_dssim": row["metrics"]["image_dssim"] = image_dssim(ref_img_path, cmp_img_path)
+                                case "image_lpips": row["metrics"]["image_lpips"] = image_lpips(ref_img_path, cmp_img_path)
+                                case "bitwise_ber": row["metrics"]["image_bitwise_ber"] = image_bitwise_ber(ref_img_path, cmp_img_path)
+                                case "byte_accuracy": row["metrics"]["image_byte_accuracy"] = image_byte_accuracy(ref_img_path, cmp_img_path)
+                                case "exact_match": row["metrics"]["image_exact_match"] = image_exact_match(ref_img_path, cmp_img_path)
+
+                # Text: original vs. extract
+                if self.metrics["text"] and refs["text"] and data["extract"]:
+                    cmp_txt_path = data["extract"][0]
+                    cmp_txt_name = Path(cmp_txt_path).name
+                    ref_txt_path = None
+
+                    for key, path in refs["text"].items():
+                        if key in cmp_txt_name:
+                            ref_txt_path = path
+                            break
+                    
+                    if ref_txt_path:
+                        ref_txt = Path(ref_txt_path).read_text(encoding="utf-8", errors="ignore")
+                        cmp_txt = Path(cmp_txt_path).read_text(encoding="utf-8", errors="ignore")
+                        row["pairs"]["text"] = (ref_txt_path, cmp_txt_path)
+                        for met in self.metrics["text"]:
+                            match met:
+                                case "similarity": row["metrics"]["text_similarity"] = text_similarity(ref_txt, cmp_txt)
+                                case "levenshtein": row["metrics"]["text_levenshtein"] = text_levenshtein(ref_txt, cmp_txt)
+                                case "jaccard": row["metrics"]["text_jaccard"] = text_jaccard(ref_txt, cmp_txt)
+                                case "exact_match": row["metrics"]["text_exact_match"] = text_exact_match(ref_txt, cmp_txt)
+                                case "char_accuracy": row["metrics"]["text_char_accuracy"] = char_accuracy(ref_txt, cmp_txt)
+                                case "bitwise_ber": row["metrics"]["text_bitwise_ber"] = text_bitwise_ber(ref_txt, cmp_txt)
+
+                data_rows.append(row)
+                # PROGRESS NOTIFICATION
+                progress_percent = int(((i + 1) / total_groups) * 100)
+                self.progress.emit(progress_percent)
+
+            # SEND THE RESULTS WHEN THE JOB IS DONE
+            self.finished.emit(data_rows)
+
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 # ---------------- MainWindow ----------------
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -148,6 +264,9 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
 
         self.last_data_rows: list[dict] = []
+              
+        # Hide ProgressBar on startup
+        self.ui.progressBar.hide()
 
         # Disable metric group boxes initially
         self.set_group_state(self.ui.grb_audio_metrics, False)
@@ -166,7 +285,7 @@ class MainWindow(QMainWindow):
 
         # Connect button actions
         self.ui.btn_export_report.clicked.connect(self.on_export_report)
-        self.ui.btn_compute.clicked.connect(self.run_metrics)
+        self.ui.btn_compute.clicked.connect(self.start_metric_calculation)
 
     # ---------------- UI helpers ----------------
     def set_group_state(self, groupbox, enabled: bool, disabled_opacity: float = 0.4):
@@ -248,107 +367,56 @@ class MainWindow(QMainWindow):
         return sel
 
     # ---------------- Metric Calculation ----------------
-    def run_metrics(self):
+    def start_metric_calculation(self):
+        """Starts the calculation process, sets up the Worker and QThread."""
         metrics = self.get_selected_metrics()
         if not any(metrics.values()):
             QMessageBox.warning(self, "Warning", "Please select at least one metric.")
             return
 
-        # Read file paths from the drop lists
+        # Disable the button and show the progress bar
+        self.ui.btn_compute.setEnabled(False)
+        self.ui.progressBar.setValue(0)
+        self.ui.progressBar.show()
+
         originals = self.list_file_paths(self.ui.lst_original)
         stegos = self.list_file_paths(self.ui.lst_stego)
         extracts = self.list_file_paths(self.ui.lst_extract)
 
-        refs, groups = group_files(originals, stegos, extracts)
+        # Create the background thread and worker
+        self.thread = QThread()
+        self.worker = MetricWorker(originals, stegos, extracts, metrics)
+        self.worker.moveToThread(self.thread)
 
-        data_rows = []
-        try:
-            for gid, data in sorted(groups.items()):
-                row = {"id": gid, "metrics": {}, "pairs": {}}
-                
-                # Audio: original vs. stego
-                if metrics["audio"] and refs["audio"] and data["stego"]:
-                    cmp_audio_path = data["stego"][0]
-                    cmp_audio_name = Path(cmp_audio_path).name
-                    ref_audio_path = None
-                    
-                    for key, path in refs["audio"].items():
-                        if key in cmp_audio_name:
-                            ref_audio_path = path
-                            break
-                    
-                    if ref_audio_path:
-                        row["pairs"]["audio"] = (ref_audio_path, cmp_audio_path)
-                        for met in metrics["audio"]:
-                            match met:
-                                case "mse": row["metrics"]["audio_mse"] = audio_mse(ref_audio_path, cmp_audio_path)
-                                case "psnr": row["metrics"]["audio_psnr"] = audio_psnr(ref_audio_path, cmp_audio_path)
-                                case "snr": row["metrics"]["audio_snr"] = audio_snr(ref_audio_path, cmp_audio_path)
-                                case "mae": row["metrics"]["audio_mae"] = audio_mae(ref_audio_path, cmp_audio_path)
-                                case "lsd": row["metrics"]["audio_lsd"] = audio_lsd(ref_audio_path, cmp_audio_path)
-                                case "perceptual_score": row["metrics"]["audio_perceptual_score"] = audio_perceptual_score(ref_audio_path, cmp_audio_path)
-                                case "bitwise_ber": row["metrics"]["audio_bitwise_ber"] = audio_bitwise_ber(ref_audio_path, cmp_audio_path)
-                                case "byte_accuracy": row["metrics"]["audio_byte_accuracy"] = audio_byte_accuracy(ref_audio_path, cmp_audio_path)
-                                case "exact_match": row["metrics"]["audio_exact_match"] = audio_exact_match(ref_audio_path, cmp_audio_path)
+        # Connect signals to the corresponding slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_calculation_finished)
+        self.worker.error.connect(self.on_calculation_error)
+        self.worker.progress.connect(self.ui.progressBar.setValue)
 
-                # Image: original vs. extract
-                if metrics["image"] and refs["image"] and data["extract"]:
-                    cmp_img_path = data["extract"][0]
-                    cmp_img_name = Path(cmp_img_path).name
-                    ref_img_path = None
+        # Clean up the thread and worker when finished
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
 
-                    for key, path in refs["image"].items():
-                        if key in cmp_img_name:
-                            ref_img_path = path
-                            break
-                    
-                    if ref_img_path:
-                        row["pairs"]["image"] = (ref_img_path, cmp_img_path)
-                        for met in metrics["image"]:
-                            match met:
-                                case "mse": row["metrics"]["image_mse"] = image_mse(ref_img_path, cmp_img_path)
-                                case "psnr": row["metrics"]["image_psnr"] = image_psnr(ref_img_path, cmp_img_path)
-                                case "ssim": row["metrics"]["image_ssim"] = image_ssim(ref_img_path, cmp_img_path)
-                                case "ber": row["metrics"]["image_ber"] = image_ber(ref_img_path, cmp_img_path)
-                                case "image_dssim": row["metrics"]["image_dssim"] = image_dssim(ref_img_path, cmp_img_path)
-                                case "image_lpips": row["metrics"]["image_lpips"] = image_lpips(ref_img_path, cmp_img_path)
-                                case "bitwise_ber": row["metrics"]["image_bitwise_ber"] = image_bitwise_ber(ref_img_path, cmp_img_path)
-                                case "byte_accuracy": row["metrics"]["image_byte_accuracy"] = image_byte_accuracy(ref_img_path, cmp_img_path)
-                                case "exact_match": row["metrics"]["image_exact_match"] = image_exact_match(ref_img_path, cmp_img_path)
+        # Start the thread
+        self.thread.start()
 
-                # Text: original vs. extract
-                if metrics["text"] and refs["text"] and data["extract"]:
-                    cmp_txt_path = data["extract"][0]
-                    cmp_txt_name = Path(cmp_txt_path).name
-                    ref_txt_path = None
+    def on_calculation_finished(self, data_rows):
+        """This slot is executed when the calculation finishes successfully."""
+        self.ui.progressBar.hide()
+        self.ui.btn_compute.setEnabled(True)
+        self.last_data_rows = data_rows
+        self.populate_results_table(data_rows)
+        QMessageBox.information(self, "Done", "Calculation complete.")
 
-                    for key, path in refs["text"].items():
-                        if key in cmp_txt_name:
-                            ref_txt_path = path
-                            break
-                    
-                    if ref_txt_path:
-                        ref_txt = Path(ref_txt_path).read_text(encoding="utf-8", errors="ignore")
-                        cmp_txt = Path(cmp_txt_path).read_text(encoding="utf-8", errors="ignore")
-                        row["pairs"]["text"] = (ref_txt_path, cmp_txt_path)
-                        for met in metrics["text"]:
-                            match met:
-                                case "similarity": row["metrics"]["text_similarity"] = text_similarity(ref_txt, cmp_txt)
-                                case "levenshtein": row["metrics"]["text_levenshtein"] = text_levenshtein(ref_txt, cmp_txt)
-                                case "jaccard": row["metrics"]["text_jaccard"] = text_jaccard(ref_txt, cmp_txt)
-                                case "exact_match": row["metrics"]["text_exact_match"] = text_exact_match(ref_txt, cmp_txt)
-                                case "char_accuracy": row["metrics"]["text_char_accuracy"] = char_accuracy(ref_txt, cmp_txt)
-                                case "bitwise_ber": row["metrics"]["text_bitwise_ber"] = text_bitwise_ber(ref_txt, cmp_txt)
-
-                data_rows.append(row)
-
-            self.last_data_rows = data_rows
-            self.populate_results_table(data_rows)
-            QMessageBox.information(self, "Done", "Calculation complete. Results are listed in the table.")
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred:\n{e}")
-
+    def on_calculation_error(self, error_message):
+        """This slot is executed when an error occurs during calculation."""
+        self.ui.progressBar.hide()
+        self.ui.btn_compute.setEnabled(True)
+        QMessageBox.critical(self, "Error", f"An error occurred:\n{error_message}")
+    
+    
     # ---------------- Exporting ----------------
     def on_export_report(self):
         if not self.last_data_rows:

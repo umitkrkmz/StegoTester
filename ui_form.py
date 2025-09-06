@@ -16,8 +16,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QGroupBox, QHeaderView,
-    QListWidgetItem, QMainWindow, QPushButton, QRadioButton,
-    QSizePolicy, QTableWidget, QTableWidgetItem, QWidget)
+    QListWidgetItem, QMainWindow, QProgressBar, QPushButton,
+    QRadioButton, QSizePolicy, QTableWidget, QTableWidgetItem,
+    QWidget)
 
 from droplist import DropList
 
@@ -148,7 +149,11 @@ class Ui_MainWindow(object):
         self.tbl_results.setGeometry(QRect(10, 20, 1181, 261))
         self.btn_compute = QPushButton(self.centralwidget)
         self.btn_compute.setObjectName(u"btn_compute")
-        self.btn_compute.setGeometry(QRect(1050, 180, 111, 41))
+        self.btn_compute.setGeometry(QRect(860, 180, 111, 41))
+        self.progressBar = QProgressBar(self.centralwidget)
+        self.progressBar.setObjectName(u"progressBar")
+        self.progressBar.setGeometry(QRect(980, 180, 221, 41))
+        self.progressBar.setValue(0)
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
