@@ -8,6 +8,9 @@ from PySide6.QtCore import QObject, Signal
 # Import the helper function from our new utils module
 from utils import group_files
 
+# Import reporting functions
+import reporting
+
 # --- StegoBench Imports ---
 # Audio
 from stegobench.metrics.audio.objective import (
@@ -164,5 +167,36 @@ class MetricWorker(QObject):
 
             self.finished.emit(data_rows)
 
+        except Exception as e:
+            self.error.emit(str(e))
+            
+            
+# ---------------- Report Worker ----------------
+class ReportWorker(QObject):
+    finished = Signal(str)  # When the job is finished, it returns the file path
+    error = Signal(str)     # If an error occurs, it returns an error message.
+
+    def __init__(self, data_rows, path, timestamp):
+        super().__init__()
+        self.data_rows = data_rows
+        self.path = path
+        self.timestamp = timestamp
+
+    def run(self):
+        """Generates the report in the background."""
+        try:
+            # Select the correct reporting function based on the file extension
+            if self.path.endswith('.pdf'):
+                reporting.save_pdf_table(self.data_rows, self.path, self.timestamp)
+            elif self.path.endswith('.txt'):
+                reporting.save_txt_table(self.data_rows, self.path, self.timestamp)
+            elif self.path.endswith('.json'):
+                reporting.save_json_table(self.data_rows, self.path, self.timestamp)
+            elif self.path.endswith('.csv'):
+                reporting.save_csv_table(self.data_rows, self.path, self.timestamp)
+            else:
+                raise ValueError("Unsupported file extension selected.")
+            
+            self.finished.emit(self.path)
         except Exception as e:
             self.error.emit(str(e))
