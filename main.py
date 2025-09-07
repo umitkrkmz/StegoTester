@@ -14,7 +14,9 @@ from ui_form import Ui_MainWindow
 from utils import IMG_EXT, AUD_EXT, TXT_EXT, fmt_val
 from dialogs import ImageComparisonDialog
 import reporting
-from worker import MetricWorker
+from reporting import save_json_table, save_csv_table
+from worker import MetricWorker, ReportWorker
+from chart_dialog import ChartDialog
 
 # --- Qt Imports ---
 from PySide6.QtCore import Qt, QThread
@@ -56,6 +58,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_compute.clicked.connect(self.start_metric_calculation)
         self.ui.btn_save_profile.clicked.connect(self.save_profile)
         self.ui.btn_load_profile.clicked.connect(self.load_profile)
+        self.ui.btn_generate_chart.clicked.connect(self.on_generate_chart)
         
         # Connect context menu for the results table
         self.ui.tbl_results.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -63,6 +66,7 @@ class MainWindow(QMainWindow):
 
     #region --- UI helpers ---
     def set_group_state(self, groupbox, enabled: bool, disabled_opacity: float = 0.4):
+        """Enables or disables a group box with a visual opacity effect."""
         groupbox.setEnabled(enabled)
         eff = groupbox.graphicsEffect()
         if not isinstance(eff, QGraphicsOpacityEffect):
@@ -71,6 +75,7 @@ class MainWindow(QMainWindow):
         eff.setOpacity(1.0 if enabled else disabled_opacity)
 
     def list_file_paths(self, lst) -> list[str]:
+        """Retrieves the full file paths from a given QListWidget."""
         out = []
         for i in range(lst.count()):
             it = lst.item(i)
@@ -79,6 +84,7 @@ class MainWindow(QMainWindow):
         return out
 
     def list_file_exts(self, lst) -> set[str]:
+        """Returns a set of all unique, lowercase file extensions from a QListWidget."""
         exts = set()
         for i in range(lst.count()):
             it = lst.item(i)
@@ -89,9 +95,11 @@ class MainWindow(QMainWindow):
         return exts
 
     def any_ext_in(self, exts: set[str], pool: set[str]) -> bool:
+        """Checks if any extension from a given set exists in a pool of allowed extensions."""
         return any(e in pool for e in exts)
 
     def update_metrics_availability(self):
+        """Updates the UI by enabling/disabling metric groups based on loaded file types."""
         exts_all = (
             self.list_file_exts(self.ui.lst_original)
             | self.list_file_exts(self.ui.lst_stego)
@@ -108,6 +116,7 @@ class MainWindow(QMainWindow):
     
     #region --- Metric Selection & Profiles ---
     def get_selected_metrics(self) -> dict[str, list[str]]:
+        """Gathers the names of all currently checked metrics from the UI."""
         sel = {"audio": [], "image": [], "text": []}
         # Audio
         if self.ui.chk_audio_mse.isChecked(): sel["audio"].append("mse")
@@ -139,6 +148,7 @@ class MainWindow(QMainWindow):
         return sel
 
     def save_profile(self):
+        """Opens a save dialog to save the current metric selections to a JSON file."""
         selected_metrics = self.get_selected_metrics()
         filePath, _ = QFileDialog.getSaveFileName(self, "Save Profile", "metric_profile.json", "JSON Files (*.json)")
         if filePath:
@@ -150,6 +160,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Could not save profile:\n{e}")
                 
     def load_profile(self):
+        """Opens a file dialog to load metric selections from a JSON profile."""
         filePath, _ = QFileDialog.getOpenFileName(self, "Load Profile", "", "JSON Files (*.json)")
         if filePath:
             try:
@@ -161,6 +172,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Could not load profile:\n{e}")
 
     def apply_profile(self, profile: dict):
+        """Applies the loaded profile data to the UI checkboxes."""
         audio_metrics = profile.get("audio", [])
         image_metrics = profile.get("image", [])
         text_metrics = profile.get("text", [])
@@ -195,6 +207,7 @@ class MainWindow(QMainWindow):
     
     #region --- Calculation & Results ---
     def start_metric_calculation(self):
+        """Initiates the metric calculation process in a background thread."""
         metrics = self.get_selected_metrics()
         if not any(metrics.values()):
             QMessageBox.warning(self, "Warning", "Please select at least one metric.")
@@ -221,18 +234,26 @@ class MainWindow(QMainWindow):
         self.thread.start()
 
     def on_calculation_finished(self, data_rows):
+        """Slot executed when the MetricWorker finishes successfully."""
         self.ui.progressBar.hide()
+        
+        # Enable buttons after calculation is complete
         self.ui.btn_compute.setEnabled(True)
+        self.ui.btn_generate_chart.setEnabled(True)
+        
+        
         self.last_data_rows = data_rows
         self.populate_results_table(data_rows)
         QMessageBox.information(self, "Done", "Calculation complete.")
 
     def on_calculation_error(self, error_message):
+        """Slot executed when the MetricWorker encounters an error."""
         self.ui.progressBar.hide()
         self.ui.btn_compute.setEnabled(True)
         QMessageBox.critical(self, "Error", f"An error occurred:\n{error_message}")
 
     def populate_results_table(self, data_rows: list[dict]):
+        """Fills the results table in the UI with the calculated data."""
         tbl = self.ui.tbl_results
         tbl.setRowCount(0) # Clear previous results
         if not data_rows: return
@@ -274,40 +295,85 @@ class MainWindow(QMainWindow):
                 tbl.setItem(r, c, it)
         tbl.resizeColumnsToContents()
         tbl.horizontalHeader().setStretchLastSection(True)
+         
+    def on_generate_chart(self):
+        """Opens the chart dialog to visualize the results."""
+        if not self.last_data_rows:
+            QMessageBox.warning(self, "Generate Chart", "Please compute metrics first.")
+            return
+        
+        # Create and show the chart dialog
+        dialog = ChartDialog(self.last_data_rows, self)
+        dialog.exec()
     #endregion
     
     #region --- Interactive Table & Exporting ---
     def on_export_report(self):
+        """Opens a save dialog and starts the report generation in a background thread."""
         if not self.last_data_rows:
             QMessageBox.warning(self, "Export", "Please run the metrics first.")
             return
-        
+
         ts_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         filename_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        file_filter = "PDF Files (*.pdf);;Text Files (*.txt);;JSON Files (*.json);;CSV Files (*.csv)"
+        path, _ = QFileDialog.getSaveFileName(self, "Save Report", f"metrics_{filename_ts}", file_filter)
+
+        if not path: return # User canceled
+
+        # Lock the interface and start the progress bar in "indefinite" mode
+        self.ui.centralwidget.setEnabled(False)
+        self.ui.progressBar.setRange(0, 0) # Indefinite mode
+        self.ui.progressBar.show()
+
+        # Set up reporting worker and thread
+        self.report_thread = QThread()
+        self.report_worker = ReportWorker(self.last_data_rows, path, ts_str)
+        self.report_worker.moveToThread(self.report_thread)
+
+        # connect signals
+        self.report_thread.started.connect(self.report_worker.run)
+        self.report_worker.finished.connect(self.on_report_finished)
+        self.report_worker.error.connect(self.on_report_error)
+
+        # Cleaning
+        self.report_worker.finished.connect(self.report_thread.quit)
+        self.report_worker.finished.connect(self.report_worker.deleteLater)
+        self.report_thread.finished.connect(self.report_thread.deleteLater)
+
+        self.report_thread.start()
+    
+    
+    def on_report_finished(self, path):
+        """Slot executed when the ReportWorker finishes successfully."""
+        self.ui.centralwidget.setEnabled(True) # unlock interface
         
-        try:
-            if self.ui.rdb_export_txt.isChecked():
-                path, _ = QFileDialog.getSaveFileName(self, "Save TXT Report", f"metrics_{filename_ts}.txt", "Text Files (*.txt)")
-                if path:
-                    reporting.save_txt_table(self.last_data_rows, path, ts_str)
-                    QMessageBox.information(self, "Saved", f"TXT file saved to:\n{path}")
-            elif self.ui.rdb_export_pdf.isChecked():
-                path, _ = QFileDialog.getSaveFileName(self, "Save PDF Report", f"metrics_{filename_ts}.pdf", "PDF Files (*.pdf)")
-                if path:
-                    reporting.save_pdf_table(self.last_data_rows, path, ts_str)
-                    QMessageBox.information(self, "Saved", f"PDF file saved to:\n{path}")
-            else:
-                QMessageBox.warning(self, "Export Format", "Please select an export format (TXT or PDF).")
-        except Exception as e:
-            QMessageBox.critical(self, "Export Error", str(e))
+        # Hide progress bar and return to normal mode
+        self.ui.progressBar.hide()
+        self.ui.progressBar.setRange(0, 100) 
+    
+        QMessageBox.information(self, "Saved", f"Report file saved to:\n{path}")
+
+    def on_report_error(self, error_message):
+        """Slot executed when the ReportWorker encounters an error."""
+        self.ui.centralwidget.setEnabled(True) # unlock interface
+        
+        # Hide progress bar and return to normal mode
+        self.ui.progressBar.hide()
+        self.ui.progressBar.setRange(0, 100)
+        
+        QMessageBox.critical(self, "Export Error", str(error_message))
             
     def open_file_explorer(self, path):
+        """Opens the system's file explorer to the specified file's containing folder."""
         folder = os.path.dirname(path)
         if sys.platform == 'win32': os.startfile(folder)
         elif sys.platform == 'darwin': subprocess.run(['open', folder])
         else: subprocess.run(['xdg-open', folder])
 
     def on_results_context_menu(self, pos):
+        """Handles the right-click event on the results table to show a context-sensitive menu."""
         tbl = self.ui.tbl_results
         item = tbl.itemAt(pos)
         if not item: return
@@ -362,10 +428,12 @@ class MainWindow(QMainWindow):
 
 # ---------------- Main ----------------
 def main():
+    """Initializes the QApplication, creates the main window, and starts the event loop."""
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()
     sys.exit(app.exec())
 
+# Ensures the main function is called only when the script is executed directly.
 if __name__ == "__main__":
     main()

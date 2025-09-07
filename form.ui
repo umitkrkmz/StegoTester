@@ -437,58 +437,6 @@
      </property>
     </widget>
    </widget>
-   <widget class="QGroupBox" name="grb_export_format">
-    <property name="geometry">
-     <rect>
-      <x>1030</x>
-      <y>20</y>
-      <width>171</width>
-      <height>141</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Export format</string>
-    </property>
-    <widget class="QPushButton" name="btn_export_report">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>90</y>
-       <width>111</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Export Reports</string>
-     </property>
-    </widget>
-    <widget class="QRadioButton" name="rdb_export_txt">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>30</y>
-       <width>111</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Text Report (.txt)</string>
-     </property>
-    </widget>
-    <widget class="QRadioButton" name="rdb_export_pdf">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>60</y>
-       <width>89</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>PDF (.pdf)</string>
-     </property>
-    </widget>
-   </widget>
    <widget class="QGroupBox" name="grb_results">
     <property name="geometry">
      <rect>
@@ -515,8 +463,8 @@
    <widget class="QPushButton" name="btn_compute">
     <property name="geometry">
      <rect>
-      <x>850</x>
-      <y>270</y>
+      <x>860</x>
+      <y>230</y>
       <width>111</width>
       <height>41</height>
      </rect>
@@ -528,41 +476,83 @@
    <widget class="QProgressBar" name="progressBar">
     <property name="geometry">
      <rect>
-      <x>970</x>
-      <y>270</y>
-      <width>221</width>
-      <height>41</height>
+      <x>860</x>
+      <y>290</y>
+      <width>291</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="value">
      <number>0</number>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_load_profile">
+   <widget class="QPushButton" name="btn_generate_chart">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
     <property name="geometry">
      <rect>
-      <x>1030</x>
-      <y>170</y>
-      <width>75</width>
-      <height>31</height>
+      <x>980</x>
+      <y>230</y>
+      <width>111</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>Load Profile</string>
+     <string>Generate Chart</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_save_profile">
+   <widget class="QPushButton" name="btn_export_report">
     <property name="geometry">
      <rect>
-      <x>1120</x>
-      <y>170</y>
-      <width>75</width>
+      <x>1050</x>
+      <y>110</y>
+      <width>111</width>
       <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>Save Profile</string>
+     <string>Export Results...</string>
     </property>
+   </widget>
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>1020</x>
+      <y>20</y>
+      <width>181</width>
+      <height>80</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Profile</string>
+    </property>
+    <widget class="QPushButton" name="btn_load_profile">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>75</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Load Profile</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_save_profile">
+     <property name="geometry">
+      <rect>
+       <x>90</x>
+       <y>30</y>
+       <width>75</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save Profile</string>
+     </property>
+    </widget>
    </widget>
   </widget>
  </widget>
