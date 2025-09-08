@@ -11,18 +11,19 @@ from pathlib import Path
 
 # --- Local Module Imports ---
 from ui_form import Ui_MainWindow
-from utils import IMG_EXT, AUD_EXT, TXT_EXT, fmt_val
+from utils import IMG_EXT, AUD_EXT, TXT_EXT, fmt_val, group_files
 from dialogs import ImageComparisonDialog
 import reporting
 from reporting import save_json_table, save_csv_table
 from worker import MetricWorker, ReportWorker
 from chart_dialog import ChartDialog
+from droplist import DropList
 
 # --- Qt Imports ---
 from PySide6.QtCore import Qt, QThread
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QGraphicsOpacityEffect,
-    QFileDialog, QMessageBox, QTableWidgetItem, QMenu
+    QFileDialog, QMessageBox, QTableWidgetItem, QMenu,QListWidgetItem
 )
 
 # ---------------- MainWindow ----------------
@@ -59,6 +60,15 @@ class MainWindow(QMainWindow):
         self.ui.btn_save_profile.clicked.connect(self.save_profile)
         self.ui.btn_load_profile.clicked.connect(self.load_profile)
         self.ui.btn_generate_chart.clicked.connect(self.on_generate_chart)
+        self.ui.btn_add_folder_original.clicked.connect(
+            lambda: self.add_files_from_folder(self.ui.lst_original)
+        )
+        self.ui.btn_add_folder_stego.clicked.connect(
+            lambda: self.add_files_from_folder(self.ui.lst_stego)
+        )
+        self.ui.btn_add_folder_extract.clicked.connect(
+            lambda: self.add_files_from_folder(self.ui.lst_extract)
+        )
         
         # Connect context menu for the results table
         self.ui.tbl_results.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -112,6 +122,28 @@ class MainWindow(QMainWindow):
         self.set_group_state(self.ui.grb_image_metrics, has_img)
         self.set_group_state(self.ui.grb_audio_metrics, has_aud)
         self.set_group_state(self.ui.grb_text_metrics, has_txt)
+    
+    def add_files_from_folder(self, list_widget: DropList):
+        """Opens a dialog to select a folder and adds its files to the list widget."""
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if not folder_path:
+            return
+
+        added_count = 0
+        existing_paths = {list_widget.item(i).data(Qt.UserRole) for i in range(list_widget.count())}
+
+        for file_path in Path(folder_path).rglob('*'):
+            if file_path.is_file() and (not list_widget.allowed_ext or file_path.suffix.lower() in list_widget.allowed_ext):
+                sp = str(file_path)
+                if sp not in existing_paths:
+                    it = QListWidgetItem(file_path.name)
+                    it.setData(Qt.UserRole, sp)
+                    list_widget.addItem(it)
+                    added_count += 1
+
+        if added_count > 0:
+            list_widget.filesChanged.emit() # Trigger update of metric groups
+    
     #endregion
     
     #region --- Metric Selection & Profiles ---
@@ -207,23 +239,44 @@ class MainWindow(QMainWindow):
     
     #region --- Calculation & Results ---
     def start_metric_calculation(self):
-        """Initiates the metric calculation process in a background thread."""
+        """Gathers UI settings, groups files, and starts the metric calculation thread."""
         metrics = self.get_selected_metrics()
         if not any(metrics.values()):
             QMessageBox.warning(self, "Warning", "Please select at least one metric.")
             return
 
-        self.ui.btn_compute.setEnabled(False)
-        self.ui.progressBar.show()
-        self.ui.progressBar.setValue(0)
+        # 1. Get the pattern entered by the user
+        pattern = self.ui.txt_file_pattern.text()
+        if not pattern: # Eğer boşsa, placeholder'daki varsayılanı kullan
+            pattern = self.ui.txt_file_pattern.placeholderText()
 
+        # 2. Get file lists
         originals = self.list_file_paths(self.ui.lst_original)
         stegos = self.list_file_paths(self.ui.lst_stego)
         extracts = self.list_file_paths(self.ui.lst_extract)
+        
+        # 3. Group files (with the new utils function)
+        try:
+            refs, groups = group_files(originals, stegos, extracts, pattern)
+            if not groups:
+                QMessageBox.information(self, "No Matches", "No file groups could be matched with the current pattern.")
+                return
+        except Exception as e:
+            QMessageBox.critical(self, "File Matching Error", f"Could not group files.\nPlease check the matching pattern and file names.\n\nError: {e}")
+            return
+
+        # 4. Prepare the interface and start the Worker
+        self.ui.btn_compute.setEnabled(False)
+        self.ui.btn_generate_chart.setEnabled(False)
+        self.ui.progressBar.show()
+        self.ui.progressBar.setValue(0)
 
         self.thread = QThread()
-        self.worker = MetricWorker(originals, stegos, extracts, metrics)
+        # We are now sending ready-made groups to Worker
+        self.worker = MetricWorker(refs, groups, metrics)
         self.worker.moveToThread(self.thread)
+        
+        # Signal connections
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.on_calculation_finished)
         self.worker.error.connect(self.on_calculation_error)

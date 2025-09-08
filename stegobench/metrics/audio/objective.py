@@ -2,7 +2,7 @@
 Objective audio quality metrics for waveform comparison.
 
 This module provides a collection of signal-level metrics that compare
-two WAV files — typically a reference signal (e.g., clean or cover audio)
+two audio files — typically a reference signal (e.g., clean or cover audio)
 and a test version (e.g., stego, compressed, enhanced, or degraded audio).
 
 Included Metrics
@@ -15,7 +15,7 @@ Included Metrics
 
 Assumptions
 -----------
-* Input audio files must be 16-bit PCM WAV format.
+* Input audio files must be readable by the soundfile library (e.g., WAV, FLAC).
 * Stereo files are automatically converted to mono by averaging channels.
 * Samples are normalized to float32 values in the range [-1.0, 1.0].
 
@@ -53,6 +53,7 @@ import math
 import wave
 from typing import Tuple
 import scipy.signal
+import soundfile as sf
 
 import numpy as np
 
@@ -68,35 +69,19 @@ __all__ = [
 # --------------------------
 # Internal helper utilities
 # --------------------------
-def _read_wav_float32_mono(path: str) -> Tuple[np.ndarray, int]:
+def _read_audio_float32_mono(path: str) -> Tuple[np.ndarray, int]:
     """
-    Read a 16-bit PCM WAV file and return (mono_signal, sample_rate).
+    Reads a general audio file (WAV, FLAC, etc.) using soundfile.
 
     * Stereo signals are averaged to mono.
     * Output samples are float32 normalized to [-1, 1].
-
-    Raises
-    ------
-    ValueError
-        If the WAV is not 16-bit PCM.
     """
-    with wave.open(path, "rb") as wf:
-        n_channels = wf.getnchannels()
-        sampwidth  = wf.getsampwidth()
-        samplerate = wf.getframerate()
-        n_frames   = wf.getnframes()
+    data, samplerate = sf.read(path, dtype='float32')
 
-        if sampwidth != 2:
-            raise ValueError("Only 16-bit PCM WAV is supported in this function.")
+    # Check if stereo and convert to mono
+    if data.ndim == 2 and data.shape[1] == 2:
+        data = data.mean(axis=1)
 
-        frames = wf.readframes(n_frames)
-        data = np.frombuffer(frames, dtype=np.int16).astype(np.float32)
-
-    if n_channels == 2:
-        data = data.reshape(-1, 2).mean(axis=1)
-
-    # Normalize to [-1, 1]
-    data /= 32767.0
     return data, samplerate
 
 
@@ -135,7 +120,7 @@ def audio_mse(reference_wav: str, test_wav: str) -> float:
     Parameters
     ----------
     reference_wav, test_wav : str
-        Paths to the reference and test WAV files. Must be 16-bit PCM.
+    Paths to the reference and test audio files (e.g., WAV, FLAC).
 
     Returns
     -------
@@ -147,8 +132,8 @@ def audio_mse(reference_wav: str, test_wav: str) -> float:
     ValueError
         If sample widths are not 16-bit PCM or lengths do not match.
     """
-    a, _ = _read_wav_float32_mono(reference_wav)
-    b, _ = _read_wav_float32_mono(test_wav)
+    a, _ = _read_audio_float32_mono(reference_wav)
+    b, _ = _read_audio_float32_mono(test_wav)
     _ensure_same_length(a, b)
     return _mse(a, b)
 
@@ -160,7 +145,7 @@ def audio_mae(reference_wav: str, test_wav: str) -> float:
     Parameters
     ----------
     reference_wav, test_wav : str
-        Paths to the reference and test WAV files. Must be 16-bit PCM.
+    Paths to the reference and test audio files (e.g., WAV, FLAC).
 
     Returns
     -------
@@ -172,8 +157,8 @@ def audio_mae(reference_wav: str, test_wav: str) -> float:
     ValueError
         If sample widths are not 16-bit PCM or lengths do not match.
     """
-    a, _ = _read_wav_float32_mono(reference_wav)
-    b, _ = _read_wav_float32_mono(test_wav)
+    a, _ = _read_audio_float32_mono(reference_wav)
+    b, _ = _read_audio_float32_mono(test_wav)
     _ensure_same_length(a, b)
     return float(np.mean(np.abs(a - b)))
 
@@ -185,7 +170,7 @@ def audio_psnr(reference_wav: str, test_wav: str) -> float:
     Parameters
     ----------
     reference_wav, test_wav : str
-        Paths to the reference and test WAV files. Must be 16-bit PCM.
+    Paths to the reference and test audio files (e.g., WAV, FLAC).
 
     Returns
     -------
@@ -206,7 +191,7 @@ def audio_snr(reference_wav: str, test_wav: str) -> float:
     Parameters
     ----------
     reference_wav, test_wav : str
-        Paths to the reference and test WAV files. Must be 16-bit PCM.
+    Paths to the reference and test audio files (e.g., WAV, FLAC).
 
     Returns
     -------
@@ -218,8 +203,8 @@ def audio_snr(reference_wav: str, test_wav: str) -> float:
     ValueError
         If sample widths are not 16-bit PCM or lengths do not match.
     """
-    a, _ = _read_wav_float32_mono(reference_wav)
-    b, _ = _read_wav_float32_mono(test_wav)
+    a, _ = _read_audio_float32_mono(reference_wav)
+    b, _ = _read_audio_float32_mono(test_wav)
     _ensure_same_length(a, b)
 
     noise = b - a
@@ -237,7 +222,7 @@ def audio_lsd(reference_wav: str, test_wav: str, frame_size: int = 512, hop_size
     Parameters
     ----------
     reference_wav, test_wav : str
-        Paths to the reference and test WAV files. Must be 16-bit PCM.
+    Paths to the reference and test audio files (e.g., WAV, FLAC).
     frame_size : int, optional
         STFT window size in samples (default: 512).
     hop_size : int, optional
@@ -249,8 +234,8 @@ def audio_lsd(reference_wav: str, test_wav: str, frame_size: int = 512, hop_size
         Average LSD across frames (lower is better).
     """
 
-    a, _ = _read_wav_float32_mono(reference_wav)
-    b, _ = _read_wav_float32_mono(test_wav)
+    a, _ = _read_audio_float32_mono(reference_wav)
+    b, _ = _read_audio_float32_mono(test_wav)
     _ensure_same_length(a, b)
 
     def stft_log_mag(signal: np.ndarray) -> np.ndarray:
