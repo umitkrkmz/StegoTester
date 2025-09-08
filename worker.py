@@ -89,35 +89,30 @@ class MetricWorker(QObject):
     progress = Signal(int)
     error = Signal(str)
 
-    def __init__(self, originals, stegos, extracts, metrics):
+    def __init__(self, refs, groups, metrics):
         super().__init__()
-        self.originals = originals
-        self.stegos = stegos
-        self.extracts = extracts
+        self.refs = refs
+        self.groups = groups
         self.metrics = metrics
 
     def run(self):
-        """
-        Calculates metrics in the background using a dynamic registry.
-        This version is cleaner and easier to extend than the previous one.
-        """
+        """Calculates metrics on pre-grouped data using a dynamic registry."""
         try:
-            refs, groups = group_files(self.originals, self.stegos, self.extracts)
             data_rows = []
             
-            total_groups = len(groups)
+            total_groups = len(self.groups)
             if total_groups == 0:
                 self.progress.emit(100)
                 self.finished.emit([])
                 return
 
-            for i, (gid, data) in enumerate(sorted(groups.items())):
+            for i, (gid, data) in enumerate(sorted(self.groups.items())):
                 row = {"id": gid, "metrics": {}, "pairs": {}}
                 
                 # --- Audio Metrics Calculation (Refactored) ---
-                if self.metrics["audio"] and refs["audio"] and data["stego"]:
+                if self.metrics["audio"] and self.refs["audio"] and data["stego"]:
                     ref_path, cmp_path = None, data["stego"][0]
-                    for key, path in refs["audio"].items():
+                    for key, path in self.refs["audio"].items():
                         if key in Path(cmp_path).name:
                             ref_path = path
                             break
@@ -130,9 +125,9 @@ class MetricWorker(QObject):
                                 row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
 
                 # --- Image Metrics Calculation (Refactored) ---
-                if self.metrics["image"] and refs["image"] and data["extract"]:
+                if self.metrics["image"] and self.refs["image"] and data["extract"]:
                     ref_path, cmp_path = None, data["extract"][0]
-                    for key, path in refs["image"].items():
+                    for key, path in self.refs["image"].items():
                         if key in Path(cmp_path).name:
                             ref_path = path
                             break
@@ -145,21 +140,19 @@ class MetricWorker(QObject):
                                 row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
 
                 # --- Text Metrics Calculation (Refactored) ---
-                if self.metrics["text"] and refs["text"] and data["extract"]:
-                    ref_path, cmp_path = None, data["extract"][0]
-                    for key, path in refs["text"].items():
-                        if key in Path(cmp_path).name:
+                if self.metrics["audio"] and self.refs["audio"] and data["stego"]:
+                    ref_path, cmp_path = None, data["stego"][0]
+                    for key, path in self.refs["audio"].items():
+                        if key in Path(cmp_path).name.lower():
                             ref_path = path
                             break
                     if ref_path:
-                        row["pairs"]["text"] = (ref_path, cmp_path)
-                        ref_content = Path(ref_path).read_text(encoding="utf-8", errors="ignore")
-                        cmp_content = Path(cmp_path).read_text(encoding="utf-8", errors="ignore")
-                        for met_name in self.metrics["text"]:
-                            metric_key = f"text_{met_name}"
+                        row["pairs"]["audio"] = (ref_path, cmp_path)
+                        for met_name in self.metrics["audio"]:
+                            metric_key = f"audio_{met_name}"
                             if metric_key in METRIC_REGISTRY:
                                 metric_func = METRIC_REGISTRY[metric_key]
-                                row["metrics"][metric_key] = metric_func(ref_content, cmp_content)
+                                row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
                 
                 data_rows.append(row)
                 progress_percent = int(((i + 1) / total_groups) * 100)

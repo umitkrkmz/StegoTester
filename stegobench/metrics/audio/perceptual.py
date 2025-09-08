@@ -2,7 +2,7 @@
 Perceptual audio quality metrics.
 
 This module implements metrics that aim to reflect how a human listener
-might perceive differences between two WAV signals — typically a cover and a stego version.
+might perceive differences between two audio signals — typically a cover and a stego version.
 
 Included Metrics
 ----------------
@@ -24,7 +24,7 @@ Dependencies
 
 from typing import Literal
 import numpy as np
-from .objective import _read_wav_float32_mono, _ensure_same_length
+from .objective import _read_audio_float32_mono, _ensure_same_length
 
 # Optional imports
 try:
@@ -55,9 +55,9 @@ def perceptual_score(
     Parameters
     ----------
     reference_wav : str
-        Path to the reference WAV file (e.g., cover or clean signal).
+        Path to the reference audio file (e.g., cover or clean signal).
     test_wav : str
-        Path to the test WAV file (e.g., stego or degraded signal).
+        Path to the test audio file (e.g., stego or degraded signal).
     method : str
         Perceptual method to use: 'dummy', 'pesq', or 'stoi'.
     fs : int, default 16000
@@ -78,8 +78,8 @@ def perceptual_score(
     ValueError
         If method or sampling rate is unsupported.
     """
-    a, sr = _read_wav_float32_mono(reference_wav)
-    b, _ = _read_wav_float32_mono(test_wav)
+    a, sr = _read_audio_float32_mono(reference_wav)
+    b, _ = _read_audio_float32_mono(test_wav)
     _ensure_same_length(a, b)
 
     if method == "dummy":

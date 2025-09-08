@@ -1,135 +1,110 @@
-# StegoTester
+# StegoTester v2.0
 
-**Advanced GUI-Based Analysis and Reporting Tool for Steganography**
+**An Advanced, GUI-Based Analysis and Reporting Tool for Steganography**
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![Framework](https://img.shields.io/badge/PySide6-6.9.1-brightgreen.svg)](https://www.qt.io/qt-for-python)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-StegoTester is a desktop application designed for researchers, students, and developers who want to measure the performance of steganography algorithms with objective metrics. It allows you to easily analyze the quality of embedding processes and the success of data recovery in audio, image, and text files.
+StegoTester is a comprehensive desktop application designed for researchers, students, and developers aiming to measure and analyze the performance of steganography algorithms. With a completely redesigned user interface and a powerful backend, StegoTester allows you to seamlessly evaluate embedding quality and data recovery success across image, audio, and text files.
 
-![StegoTester Main Application Screen](assets/main_app.png)
+![StegoTester Main UI](.github/images/main_app.png)
 
----
+## Key Features
 
-## Features
+- **Unified Workflow**: Process a single file or entire folders of files using the same intuitive interface. Supports both drag-and-drop and folder selection.
+- **Flexible File Matching**: Move beyond rigid naming conventions. A powerful pattern matching engine allows you to define your own file naming rules using simple tags like `{ID}` and `{KEYWORD}`.
+- **Tabbed Interface**: A clean, organized user interface with dedicated tabs for `Setup` and `Results` to provide a focused and efficient workspace.
+- **Expanded File Support**: Now includes support for lossless `.flac` audio files in addition to other formats.
+- **Extensive Metrics Library**: A rich set of objective and perceptual metrics for a deep analysis.
+  - **Image**: MSE, PSNR, SSIM, LPIPS, BER, and more.
+  - **Audio**: MSE, PSNR, SNR, LSD, Perceptual Score, and more.
+  - **Text**: Levenshtein Distance, Jaccard Similarity, Char Accuracy, and more.
+- **Advanced Reporting**: Export your analysis in multiple formats:
+  - **Data-Friendly (JSON, CSV)**: For easy integration with scripts and other analysis tools.
+  - **Human-Readable (TXT, PDF)**: Generate clean text summaries or professional, multi-page PDF reports with embedded charts for visual analysis.
+- **Interactive Tools**:
+  - **Chart Visualization**: Generate dynamic `matplotlib` charts from your results in a separate dialog window.
+  - **Context Menus**: Right-click on any result to open the file location, compare images side-by-side, or listen to audio files.
+  - **Metric Profiles**: Save and load your favorite metric combinations to speed up repetitive tasks.
+- **Responsive & Non-Blocking**: All heavy tasks (metric calculation, report generation) run in the background, ensuring the UI is always responsive.
 
-- **Versatile File Support**: Supports popular **Image**, **Audio**, and **Text** formats such as `PNG`, `JPG`, `WAV`, and `TXT`.
-- **Drag-and-Drop Interface**: Easily drag and drop your Original, Stego, and Extract files into the corresponding lists.
-- **Extensive Metrics Library**:
-  - **Image Metrics**: MSE, PSNR, SSIM, BER, LPIPS, and more.
-  - **Audio Metrics**: MSE, PSNR, SNR, LSD, Perceptual Score, and more.
-  - **Text Metrics**: Levenshtein Distance, Jaccard Similarity, Char Accuracy, and more.
-- **Result Visualization**: Visualize your results with dynamic bar charts. An integrated chart window allows you to select any metric and compare the results across all your tests.
-- **Dynamic UI**: Only the metric groups relevant to the loaded file types are automatically enabled, preventing confusion.
-- **Advanced Reporting**: Export your analysis results in four different formats:
-  - **TXT, CSV, JSON**: For easy data processing and integration with other tools.
-  - **Enhanced PDF**: A detailed, multi-page report where each test is presented on its own page, and summary charts for each metric are automatically included at the end.
-- **Responsive UI:** Long calculations and report generation run in the background without freezing the application, with a progress bar showing the current status.
-- **Metric Profiles**: Save your favorite combinations of metrics to a profile file and load them back instantly to speed up repetitive workflows.
-- **Interactive Results**: Right-click on any row in the results table to quickly open the file location, visually compare images, or listen to audio files.
+## Screenshots
 
+<table>
+  <tr>
+    <td><img src=".github/images/results_tab.png" alt="Results Tab"></td>
+    <td><img src=".github/images/chart_dialog.png" alt="Chart Dialog"></td>
+  </tr>
+  <tr>
+    <td align="center"><i>Spacious Results Table</i></td>
+    <td align="center"><i>Dynamic Charting Window</i></td>
+  </tr>
+</table>
 
----
+## Getting Started
 
-## Usage
+### Prerequisites
 
-Follow the steps below to take full advantage of the application.
+- **Python 3.11+**
 
-### Step 1: File Naming Convention (Crucial Step!)
+### Installation
 
-You must follow a specific naming standard for the application to correctly match the files.
+The project uses a `requirements.txt` file for easy setup.
 
-#### **Original Files**
-These are the reference files that form the basis of the comparison.
-- **Format:** `orig_type_keyword.extension`.
-- **Examples:**
-  - `orig_image_baboon.png` (Keyword: `baboon`).
-  - `orig_audio_sine.wav` (Keyword: `sine`).
-
-#### **Stego Files**
-These are the cover files in which data has been hidden.
-- **Format:** `stego_ID_..._keyword_....extension`.
-- **Example:** `stego_001_lsb_sine.wav`.
-  - `001`: The ID that specifies the test group.
-  - `sine`: Indicates that it should be compared with `orig_audio_sine.wav`.
-
-#### **Extract Files**
-This is the secret data recovered from the stego file.
-- **Format:** `extract_ID_..._keyword_....extension`.
-- **Example:** `extract_001_lsb_baboon_from_sine.png`.
-  - `001`: Indicates it belongs to the same test group as `stego_001_...`.
-  - `baboon`: Indicates that it should be compared with `orig_image_baboon.png`.
-
-### Step 2: Running the Application
-
-1.  Drag and drop your prepared files into the **Original**, **Stego**, and **Extract** lists in the program.
-2.  Select the metrics you want to calculate from the activated metric groups.
-3.  Click the **"Compute"** button and wait for the calculation to finish.
-4.  Review the results in the **"Results"** table below.
-5.  Click the **"Export Results..."** button. In the "Save As" dialog, choose your desired format (PDF, TXT, JSON, or CSV) from the file type dropdown and save your report.
-
----
-
-## Sample Reports
-
-You can examine the report formats generated by the application by clicking the links below:
-
-- **[Sample TXT Report](assets/metrics_20250824_161602.txt)** - All results in a wide, aligned table format.
-- **[Sample PDF Report](assets/metrics_20250907_155224.pdf)** - A clean and readable format, arranged vertically for each test ID.
-
----
-
-## Installation
-
-Python 3.10 or higher is recommended to run the application. The project offers two different installation options based on your needs.
-
-### Option 1: Core Installation (Lightweight & Fast)
-
-This installation includes the essential libraries required to run the most common objective metrics (MSE, PSNR, SSIM, SNR, Levenshtein, etc.). It **does not** include heavy deep learning libraries.
-
-1.  **Create and Activate a Virtual Environment (Recommended):**
+1.  **Create and activate a virtual environment (Recommended):**
     ```bash
     python -m venv .venv
-    # Windows: .venv\Scripts\activate | Linux/macOS: source .venv/bin/activate
+    # Windows: .venv\Scripts\activate
+    # Linux/macOS: source .venv/bin/activate
     ```
-
-2.  **Install Core Dependencies:**
-    Copy and run the following command in your terminal to install the necessary libraries:
-    ```bash
-    pip install PySide6 fpdf matplotlib numpy scikit-image scipy Levenshtein RapidFuzz
-    ```
-
-3.  **Run the Application:**
-    ```bash
-    python main.py
-    ```
-    *Note: With this setup, if you select metrics like `perceptual_score` (audio) or `lpips` (image), the program will skip them without errors.*
-
-
-### Option 2: Full Installation (All Metrics)
-
-This installation includes all libraries, including large ones like `torch`, enabling **all metrics** in the project to work (including perceptual audio and image metrics).
-
-1.  **Create and Activate a Virtual Environment** (if you haven't already).
 
 2.  **Install All Dependencies:**
-    Install using the `requirements.txt` file, which is located in the main project directory and contains the full list of libraries.
+    Install using the `requirements.txt` file, which contains the full list of libraries for all features.
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Run the Application:**
-    ```bash
-    python main.py
-    ```
+### Running the Application
 
----
+Once the dependencies are installed, run the application from the project's root directory:
+```bash
+python main.py
+```
+
+## Workflow Guide
+
+1.  **Load Files**: Drag and drop your files into the lists, or use the **"Add Folder..."** buttons to load files in bulk.
+2.  **Set Matching Pattern**: If your files don't follow the default naming convention, enter your custom pattern in the **"File Matching Pattern"** text box. See the guide below for examples.
+3.  **Select Metrics**: Choose the metrics you want to calculate. Use the **"Save/Load Profile"** buttons to manage your selections.
+4.  **Compute**: Click **"Compute"**. The results will automatically appear in the **"Results"** tab.
+5.  **Visualize & Analyze**: Click **"Generate Chart"** to open the visualization window. Right-click on rows in the Results table for more actions.
+6.  **Export**: Click **"Export Results..."** and choose your desired format (PDF, TXT, CSV, or JSON) in the save dialog.
+
+## Flexible File Naming Guide
+
+StegoTester's pattern engine uses special tags to find the `ID` and `KEYWORD` in your filenames.
+
+-   **`{ID}`**: Represents the numeric ID of the test group.
+-   **`{KEYWORD}`**: Represents the keyword linking to an original file.
+-   **`...`**: A wildcard that matches any characters.
+
+**Example Scenarios:**
+
+| Filename Example                      | Pattern to Enter in the UI        |
+| ------------------------------------- | --------------------------------- |
+| `stego_001_lsb_sine.wav`              | `stego_{ID}_..._{KEYWORD}...`     |
+| `Test-sine-1.flac`                    | `Test-{KEYWORD}-{ID}...`          |
+| `output_id_42_payload_secret.png`     | `..._id_{ID}_...`                 |
 
 ## Technologies Used
 
-- **PySide6**: UI design and application framework.
-- **StegoBench (Custom Local Module)**: Handles the calculation of all steganography metrics.
-- **FPDF**: Creation of PDF reports.
+- **UI Framework**: PySide6
+- **Charting**: Matplotlib
+- **PDF Reporting**: FPDF (pyfpdf)
+- **Core Metrics**: NumPy, SciPy, Scikit-Image
+- **Audio Processing**: SoundFile
+- **Custom Backend**: StegoBench (local module for all metric calculations)
 
 ## License
 
