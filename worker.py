@@ -4,9 +4,7 @@
 
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal
-
-# Import the helper function from our new utils module
-from utils import group_files
+from utils import group_files_smart, calculate_image_stego_prob, calculate_audio_stego_prob # Utility functions
 
 # Import reporting functions
 import reporting
@@ -48,7 +46,6 @@ from stegobench.metrics.text.payload import (
 
 
 # ---------------- Metric Registry ----------------
-# Maps metric names (strings) to their actual function objects.
 METRIC_REGISTRY = {
     # Audio Metrics
     "audio_mse": audio_mse,
@@ -60,6 +57,8 @@ METRIC_REGISTRY = {
     "audio_bitwise_ber": audio_bitwise_ber,
     "audio_byte_accuracy": audio_byte_accuracy,
     "audio_exact_match": audio_exact_match,
+    
+    "audio_ai_detection": calculate_audio_stego_prob, # AI-based stego detection
 
     # Image Metrics
     "image_mse": image_mse,
@@ -71,6 +70,8 @@ METRIC_REGISTRY = {
     "image_bitwise_ber": image_bitwise_ber,
     "image_byte_accuracy": image_byte_accuracy,
     "image_exact_match": image_exact_match,
+    
+    "image_ai_detection": calculate_image_stego_prob, # AI-based stego detection
 
     # Text Metrics
     "text_similarity": text_similarity,
@@ -80,8 +81,6 @@ METRIC_REGISTRY = {
     "text_char_accuracy": char_accuracy,
     "text_bitwise_ber": text_bitwise_ber,
 }
-
-
 
 # ---------------- Metric Worker ----------------
 class MetricWorker(QObject):
@@ -96,7 +95,7 @@ class MetricWorker(QObject):
         self.metrics = metrics
 
     def run(self):
-        """Calculates metrics on pre-grouped data using a dynamic registry."""
+        """Calculates metrics based on ID matching from group_files_smart."""
         try:
             data_rows = []
             
@@ -106,53 +105,67 @@ class MetricWorker(QObject):
                 self.finished.emit([])
                 return
 
+            # gid is the Integer ID assigned in utils.py
             for i, (gid, data) in enumerate(sorted(self.groups.items())):
                 row = {"id": gid, "metrics": {}, "pairs": {}}
                 
-                # --- Audio Metrics Calculation (Refactored) ---
-                if self.metrics["audio"] and self.refs["audio"] and data["stego"]:
-                    ref_path, cmp_path = None, data["stego"][0]
-                    for key, path in self.refs["audio"].items():
-                        if key in Path(cmp_path).name:
-                            ref_path = path
-                            break
-                    if ref_path:
-                        row["pairs"]["audio"] = (ref_path, cmp_path)
-                        for met_name in self.metrics["audio"]:
-                            metric_key = f"audio_{met_name}"
-                            if metric_key in METRIC_REGISTRY:
-                                metric_func = METRIC_REGISTRY[metric_key]
-                                row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
+                # utils.py stores refs with STRING keys ("1", "2"), but groups use INT keys.
+                # We convert gid to string to look up the reference file.
+                str_gid = str(gid)
 
-                # --- Image Metrics Calculation (Refactored) ---
-                if self.metrics["image"] and self.refs["image"] and data["extract"]:
-                    ref_path, cmp_path = None, data["extract"][0]
-                    for key, path in self.refs["image"].items():
-                        if key in Path(cmp_path).name:
-                            ref_path = path
-                            break
-                    if ref_path:
-                        row["pairs"]["image"] = (ref_path, cmp_path)
-                        for met_name in self.metrics["image"]:
-                            metric_key = f"image_{met_name}"
-                            if metric_key in METRIC_REGISTRY:
+                # --- Audio Metrics ---
+                # Checks if we have an original audio reference and a candidate stego file
+                if self.metrics["audio"] and str_gid in self.refs["audio"] and data["stego"]:
+                    ref_path = self.refs["audio"][str_gid]
+                    cmp_path = data["stego"][0] # Take the first match
+                    
+                    row["pairs"]["audio"] = (ref_path, cmp_path)
+                    
+                    for met_name in self.metrics["audio"]:
+                        metric_key = f"audio_{met_name}"
+                        if metric_key in METRIC_REGISTRY:
+                            try:
                                 metric_func = METRIC_REGISTRY[metric_key]
                                 row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
+                            except Exception as e:
+                                print(f"Error calculating {metric_key}: {e}")
 
-                # --- Text Metrics Calculation (Refactored) ---
-                if self.metrics["audio"] and self.refs["audio"] and data["stego"]:
-                    ref_path, cmp_path = None, data["stego"][0]
-                    for key, path in self.refs["audio"].items():
-                        if key in Path(cmp_path).name.lower():
-                            ref_path = path
-                            break
-                    if ref_path:
-                        row["pairs"]["audio"] = (ref_path, cmp_path)
-                        for met_name in self.metrics["audio"]:
-                            metric_key = f"audio_{met_name}"
-                            if metric_key in METRIC_REGISTRY:
+                # --- Image Metrics ---
+                # Priority: Compare Original vs Stego (common for PSNR/SSIM)
+                # If no Stego file, try Original vs Extract (common for payload extraction)
+                target_img = None
+                if data["stego"]: target_img = data["stego"][0]
+                elif data["extract"]: target_img = data["extract"][0]
+
+                if self.metrics["image"] and str_gid in self.refs["image"] and target_img:
+                    ref_path = self.refs["image"][str_gid]
+                    row["pairs"]["image"] = (ref_path, target_img)
+                    
+                    for met_name in self.metrics["image"]:
+                        metric_key = f"image_{met_name}"
+                        if metric_key in METRIC_REGISTRY:
+                            try:
                                 metric_func = METRIC_REGISTRY[metric_key]
-                                row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
+                                row["metrics"][metric_key] = metric_func(ref_path, target_img)
+                            except Exception as e:
+                                print(f"Error calculating {metric_key}: {e}")
+
+                # --- Text Metrics ---
+                target_text = None
+                if data["stego"]: target_text = data["stego"][0]
+                elif data["extract"]: target_text = data["extract"][0]
+                
+                if self.metrics["text"] and str_gid in self.refs["text"] and target_text:
+                    ref_path = self.refs["text"][str_gid]
+                    row["pairs"]["text"] = (ref_path, target_text)
+                    for met_name in self.metrics["text"]:
+                        metric_key = f"text_{met_name}"
+                        if metric_key in METRIC_REGISTRY:
+                            try:
+                                metric_func = METRIC_REGISTRY[metric_key]
+                                row["metrics"][metric_key] = metric_func(ref_path, target_text)
+                            except Exception as e:
+                                print(f"Error calculating {metric_key}: {e}")
                 
                 data_rows.append(row)
                 progress_percent = int(((i + 1) / total_groups) * 100)
@@ -162,8 +175,7 @@ class MetricWorker(QObject):
 
         except Exception as e:
             self.error.emit(str(e))
-            
-            
+
 # ---------------- Report Worker ----------------
 class ReportWorker(QObject):
     finished = Signal(str)  # When the job is finished, it returns the file path

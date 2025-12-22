@@ -1,111 +1,106 @@
-# StegoTester v2.0
+# StegoTester v3.0 AI
 
-**An Advanced, GUI-Based Analysis and Reporting Tool for Steganography**
+**Next-Gen Steganography Analysis & Detection Tool with AI-Powered Matching**
 
 [![Python Version](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![Framework](https://img.shields.io/badge/PySide6-6.9.1-brightgreen.svg)](https://www.qt.io/qt-for-python)
+[![Framework](https://img.shields.io/badge/PySide6-6.8+-brightgreen.svg)](https://www.qt.io/qt-for-python)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/Status-Stable_v3.0-orange.svg)]()
 
-StegoTester is a comprehensive desktop application designed for researchers, students, and developers aiming to measure and analyze the performance of steganography algorithms. With a completely redesigned user interface and a powerful backend, StegoTester allows you to seamlessly evaluate embedding quality and data recovery success across image, audio, and text files.
+**StegoTester v3.0** is a professional-grade desktop application designed for researchers and cyber-security analysts. It goes beyond simple metric calculation by introducing **Smart Content Matching** and **Statistical Steganalysis (AI Detection)** to identify hidden data in Image and Audio files.
 
-![StegoTester Main UI](.github/images/main_app.png)
+Completely rewritten with a modern "Cyber-Security Workbench" interface, it eliminates the need for strict file naming conventions and provides deep insights into steganographic quality and detectability.
+
+![StegoTester Main UI](.github/images/main_dashboard_v3.png)
+
+## 🚀 What's New in v3.0?
+
+* **🧠 AI Steganalysis (Detection):**
+    * **Images:** Uses *Differential LSB Entropy Analysis* to calculate the probability of hidden data based on pixel residuals.
+    * **Audio:** Uses *Coverage Density Analysis* designed to detect advanced Spread Spectrum and Vector Embedding techniques that traditional amplitude checks miss.
+* **🔍 Smart Matching (No More Regex):**
+    * Forget about renaming files! StegoTester now uses **Perceptual Hashing (pHash)** for images and **Audio Fingerprinting (FFT Spectrum)** for sound files to automatically pair original files with their steganographic counterparts, even if filenames are completely different.
+* **🎨 Modern Dark UI:** A custom-built Fusion theme with a minimalist dark grey and soft green palette, optimized for long working sessions.
+* **↔️ Interactive Comparison:** A new **Before/After Slider** tool to visually inspect pixel-level artifacts in real-time.
+* **📊 Professional Reporting:** Generates PDF reports with **Executive Summaries**, **Risk Pie Charts**, and color-coded verdict badges (Safe/Suspicious/Critical).
 
 ## Key Features
 
-- **Unified Workflow**: Process a single file or entire folders of files using the same intuitive interface. Supports both drag-and-drop and folder selection.
-- **Flexible File Matching**: Move beyond rigid naming conventions. A powerful pattern matching engine allows you to define your own file naming rules using simple tags like `{ID}` and `{KEYWORD}`.
-- **Tabbed Interface**: A clean, organized user interface with dedicated tabs for `Setup` and `Results` to provide a focused and efficient workspace.
-- **Expanded File Support**: Now includes support for lossless `.flac` audio files in addition to other formats.
-- **Extensive Metrics Library**: A rich set of objective and perceptual metrics for a deep analysis.
-  - **Image**: MSE, PSNR, SSIM, LPIPS, BER, and more.
-  - **Audio**: MSE, PSNR, SNR, LSD, Perceptual Score, and more.
-  - **Text**: Levenshtein Distance, Jaccard Similarity, Char Accuracy, and more.
-- **Advanced Reporting**: Export your analysis in multiple formats:
-  - **Data-Friendly (JSON, CSV)**: For easy integration with scripts and other analysis tools.
-  - **Human-Readable (TXT, PDF)**: Generate clean text summaries or professional, multi-page PDF reports with embedded charts for visual analysis.
-- **Interactive Tools**:
-  - **Chart Visualization**: Generate dynamic `matplotlib` charts from your results in a separate dialog window.
-  - **Context Menus**: Right-click on any result to open the file location, compare images side-by-side, or listen to audio files.
-  - **Metric Profiles**: Save and load your favorite metric combinations to speed up repetitive tasks.
-- **Responsive & Non-Blocking**: All heavy tasks (metric calculation, report generation) run in the background, ensuring the UI is always responsive.
+### 1. Smart & Content-Aware Workflow
+Just drag and drop your folders. The engine analyzes the *content* of the files to match them.
+* *Example:* `baboon.png` (Original) will automatically match with `encrypted_payload_v2.png` (Stego) because they look similar, regardless of the name.
 
-## Screenshots
+### 2. Comprehensive Metric Library
+* **Image:** MSE, PSNR, SSIM, LPIPS (Perceptual), BER, Bitwise Accuracy, **AI Detection Score**.
+* **Audio:** MSE, PSNR, SNR, LSD (Log-Spectral Distance), **AI Detection Score**.
+* **Text:** Levenshtein Distance, Jaccard Similarity, Character Accuracy.
 
-<table>
-  <tr>
-    <td><img src=".github/images/results_tab.png" alt="Results Tab"></td>
-    <td><img src=".github/images/chart_dialog.png" alt="Chart Dialog"></td>
-  </tr>
-  <tr>
-    <td align="center"><i>Spacious Results Table</i></td>
-    <td align="center"><i>Dynamic Charting Window</i></td>
-  </tr>
-</table>
+### 3. Advanced Visualization
+* **Interactive Slider:** Drag to reveal subtle changes between cover and stego files.
+* **Chart Generator:** Create dynamic bar charts for any calculated metric directly within the app.
 
-## Getting Started
+![Interactive Slider](.github/images/interactive_slider.png)
 
-### Prerequisites
+### 4. Enterprise-Grade Reporting
+Export your findings into a format that fits your needs:
+* **PDF:** Full audit report with visual risk assessment (Pie Charts) and detailed breakdown per file.
+* **JSON / CSV:** Raw data for further processing in Python/Matlab.
 
-- **Python 3.11+**
+![Report Sample](.github/images/report_pie_chart.png)
 
-### Installation
+## Installation & Usage
 
-The project uses a `requirements.txt` file for easy setup.
+### Option A: Standalone Executable (Windows)
+Simply download the latest `StegoTester_Pro.exe` from the releases page and run it. No Python installation required.
 
-1.  **Create and activate a virtual environment (Recommended):**
+### Option B: Running from Source
+
+1.  **Clone the repository:**
     ```bash
-    python -m venv .venv
-    # Windows: .venv\Scripts\activate
-    # Linux/macOS: source .venv/bin/activate
+    git clone https://github.com/umitkrkmz/stegotester.git
+    cd stegotester
     ```
 
-2.  **Install All Dependencies:**
-    Install using the `requirements.txt` file, which contains the full list of libraries for all features.
+2.  **Create a virtual environment:**
+    ```bash
+    python -m venv .venv
+    # Windows:
+    .\.venv\Scripts\activate
+    # Mac/Linux:
+    source .venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
-### Running the Application
+4.  **Run the application:**
+    ```bash
+    python main.py
+    ```
 
-Once the dependencies are installed, run the application from the project's root directory:
-```bash
-python main.py
-```
+## How "Smart Detection" Works
 
-## Workflow Guide
+StegoTester v3.0 introduces a detection score (0.0 to 1.0):
 
-1.  **Load Files**: Drag and drop your files into the lists, or use the **"Add Folder..."** buttons to load files in bulk.
-2.  **Set Matching Pattern**: If your files don't follow the default naming convention, enter your custom pattern in the **"File Matching Pattern"** text box. See the guide below for examples.
-3.  **Select Metrics**: Choose the metrics you want to calculate. Use the **"Save/Load Profile"** buttons to manage your selections.
-4.  **Compute**: Click **"Compute"**. The results will automatically appear in the **"Results"** tab.
-5.  **Visualize & Analyze**: Click **"Generate Chart"** to open the visualization window. Right-click on rows in the Results table for more actions.
-6.  **Export**: Click **"Export Results..."** and choose your desired format (PDF, TXT, CSV, or JSON) in the save dialog.
+| Score | Verdict | Color | Meaning |
+| :--- | :--- | :--- | :--- |
+| **0.00 - 0.10** | **SAFE** | 🟢 | No statistical anomalies found. File is likely clean. |
+| **0.40 - 0.80** | **SUSPICIOUS** | 🟡 | Some irregularities detected (e.g., Tonal audio modification). |
+| **0.85 - 1.00** | **CRITICAL** | 🔴 | High entropy or wide-spread LSB modification detected. Strong indicator of Steganography. |
 
-## Flexible File Naming Guide
-
-StegoTester's pattern engine uses special tags to find the `ID` and `KEYWORD` in your filenames.
-
--   **`{ID}`**: Represents the numeric ID of the test group.
--   **`{KEYWORD}`**: Represents the keyword linking to an original file.
--   **`...`**: A wildcard that matches any characters.
-
-**Example Scenarios:**
-
-| Filename Example                      | Pattern to Enter in the UI        |
-| ------------------------------------- | --------------------------------- |
-| `stego_001_lsb_sine.wav`              | `stego_{ID}_..._{KEYWORD}...`     |
-| `Test-sine-1.flac`                    | `Test-{KEYWORD}-{ID}...`          |
-| `output_id_42_payload_secret.png`     | `..._id_{ID}_...`                 |
+* **Audio Logic:** It analyzes the *density* of changes across the signal. Even if the noise is quiet (low amplitude), if it covers a large percentage of the file (common in Vector/Spread Spectrum LSB), the AI score will spike.
+* **Image Logic:** It calculates the entropy of the difference matrix (residual) between the original and stego image.
 
 ## Technologies Used
 
-- **UI Framework**: PySide6
-- **Charting**: Matplotlib
-- **PDF Reporting**: FPDF (pyfpdf)
-- **Core Metrics**: NumPy, SciPy, Scikit-Image
-- **Audio Processing**: SoundFile
-- **Custom Backend**: StegoBench (local module for all metric calculations)
+* **Core:** Python 3.11+
+* **UI:** PySide6 (Qt) with Custom Fusion Engine
+* **Analysis:** NumPy, SciPy, SoundFile, Pillow
+* **AI/Hashing:** ImageHash, Scikit-Image
+* **Reporting:** FPDF, Matplotlib
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**.

@@ -36,10 +36,10 @@
      <widget class="QGroupBox" name="grb_extract">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>470</y>
-        <width>321</width>
-        <height>211</height>
+        <x>730</x>
+        <y>10</y>
+        <width>351</width>
+        <height>231</height>
        </rect>
       </property>
       <property name="title">
@@ -50,16 +50,16 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>301</width>
-         <height>131</height>
+         <width>331</width>
+         <height>151</height>
         </rect>
        </property>
       </widget>
       <widget class="QPushButton" name="btn_add_folder_extract">
        <property name="geometry">
         <rect>
-         <x>230</x>
-         <y>170</y>
+         <x>260</x>
+         <y>190</y>
          <width>80</width>
          <height>31</height>
         </rect>
@@ -72,10 +72,10 @@
      <widget class="QGroupBox" name="grb_stego">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>240</y>
-        <width>321</width>
-        <height>211</height>
+        <x>370</x>
+        <y>10</y>
+        <width>351</width>
+        <height>231</height>
        </rect>
       </property>
       <property name="title">
@@ -86,16 +86,16 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>301</width>
-         <height>131</height>
+         <width>331</width>
+         <height>151</height>
         </rect>
        </property>
       </widget>
       <widget class="QPushButton" name="btn_add_folder_stego">
        <property name="geometry">
         <rect>
-         <x>230</x>
-         <y>170</y>
+         <x>260</x>
+         <y>190</y>
          <width>80</width>
          <height>31</height>
         </rect>
@@ -110,8 +110,8 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>321</width>
-        <height>211</height>
+        <width>351</width>
+        <height>231</height>
        </rect>
       </property>
       <property name="title">
@@ -122,16 +122,16 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>301</width>
-         <height>131</height>
+         <width>331</width>
+         <height>151</height>
         </rect>
        </property>
       </widget>
       <widget class="QPushButton" name="btn_add_folder_original">
        <property name="geometry">
         <rect>
-         <x>230</x>
-         <y>170</y>
+         <x>260</x>
+         <y>190</y>
          <width>80</width>
          <height>31</height>
         </rect>
@@ -144,10 +144,10 @@
      <widget class="QGroupBox" name="grb_text_metrics">
       <property name="geometry">
        <rect>
-        <x>350</x>
-        <y>10</y>
-        <width>221</width>
-        <height>151</height>
+        <x>10</x>
+        <y>260</y>
+        <width>181</width>
+        <height>341</height>
        </rect>
       </property>
       <property name="title">
@@ -195,8 +195,8 @@
       <widget class="QCheckBox" name="chk_text_exact_match">
        <property name="geometry">
         <rect>
-         <x>110</x>
-         <y>30</y>
+         <x>10</x>
+         <y>120</y>
          <width>91</width>
          <height>21</height>
         </rect>
@@ -208,8 +208,8 @@
       <widget class="QCheckBox" name="chk_text_char_accuracy">
        <property name="geometry">
         <rect>
-         <x>110</x>
-         <y>60</y>
+         <x>10</x>
+         <y>150</y>
          <width>101</width>
          <height>21</height>
         </rect>
@@ -221,8 +221,8 @@
       <widget class="QCheckBox" name="chk_text_bitwise_ber">
        <property name="geometry">
         <rect>
-         <x>110</x>
-         <y>90</y>
+         <x>10</x>
+         <y>180</y>
          <width>81</width>
          <height>21</height>
         </rect>
@@ -235,10 +235,10 @@
      <widget class="QGroupBox" name="grb_image_metrics">
       <property name="geometry">
        <rect>
-        <x>580</x>
-        <y>10</y>
-        <width>281</width>
-        <height>151</height>
+        <x>410</x>
+        <y>260</y>
+        <width>181</width>
+        <height>341</height>
        </rect>
       </property>
       <property name="title">
@@ -299,8 +299,8 @@
       <widget class="QCheckBox" name="chk_image_dssim">
        <property name="geometry">
         <rect>
-         <x>70</x>
-         <y>30</y>
+         <x>10</x>
+         <y>150</y>
          <width>91</width>
          <height>21</height>
         </rect>
@@ -312,8 +312,8 @@
       <widget class="QCheckBox" name="chk_image_lpips">
        <property name="geometry">
         <rect>
-         <x>70</x>
-         <y>60</y>
+         <x>10</x>
+         <y>180</y>
          <width>91</width>
          <height>21</height>
         </rect>
@@ -325,8 +325,8 @@
       <widget class="QCheckBox" name="chk_image_bitwise_ber">
        <property name="geometry">
         <rect>
-         <x>170</x>
-         <y>30</y>
+         <x>10</x>
+         <y>210</y>
          <width>81</width>
          <height>21</height>
         </rect>
@@ -338,8 +338,8 @@
       <widget class="QCheckBox" name="chk_image_byte_accuracy">
        <property name="geometry">
         <rect>
-         <x>170</x>
-         <y>60</y>
+         <x>10</x>
+         <y>240</y>
          <width>101</width>
          <height>21</height>
         </rect>
@@ -351,8 +351,8 @@
       <widget class="QCheckBox" name="chk_image_exact_match">
        <property name="geometry">
         <rect>
-         <x>170</x>
-         <y>90</y>
+         <x>10</x>
+         <y>270</y>
          <width>91</width>
          <height>21</height>
         </rect>
@@ -361,14 +361,27 @@
         <string>exact_match</string>
        </property>
       </widget>
+      <widget class="QCheckBox" name="chk_img_ai">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>300</y>
+         <width>151</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>AI Detection (Diff Prob.)</string>
+       </property>
+      </widget>
      </widget>
      <widget class="QGroupBox" name="grb_audio_metrics">
       <property name="geometry">
        <rect>
-        <x>870</x>
-        <y>10</y>
-        <width>261</width>
-        <height>151</height>
+        <x>210</x>
+        <y>260</y>
+        <width>181</width>
+        <height>341</height>
        </rect>
       </property>
       <property name="title">
@@ -429,8 +442,8 @@
       <widget class="QCheckBox" name="chk_audio_lsd">
        <property name="geometry">
         <rect>
-         <x>70</x>
-         <y>30</y>
+         <x>10</x>
+         <y>150</y>
          <width>81</width>
          <height>21</height>
         </rect>
@@ -442,8 +455,8 @@
       <widget class="QCheckBox" name="chk_audio_perceptual_score">
        <property name="geometry">
         <rect>
-         <x>130</x>
-         <y>30</y>
+         <x>10</x>
+         <y>180</y>
          <width>121</width>
          <height>21</height>
         </rect>
@@ -455,8 +468,8 @@
       <widget class="QCheckBox" name="chk_audio_bitwise_ber">
        <property name="geometry">
         <rect>
-         <x>130</x>
-         <y>60</y>
+         <x>10</x>
+         <y>210</y>
          <width>121</width>
          <height>21</height>
         </rect>
@@ -468,8 +481,8 @@
       <widget class="QCheckBox" name="chk_audio_byte_accuracy">
        <property name="geometry">
         <rect>
-         <x>130</x>
-         <y>90</y>
+         <x>10</x>
+         <y>240</y>
          <width>121</width>
          <height>21</height>
         </rect>
@@ -481,14 +494,27 @@
       <widget class="QCheckBox" name="chk_audio_exact_match">
        <property name="geometry">
         <rect>
-         <x>130</x>
-         <y>120</y>
+         <x>10</x>
+         <y>270</y>
          <width>121</width>
          <height>21</height>
         </rect>
        </property>
        <property name="text">
         <string>exact_match</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="chk_aud_ai">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>300</y>
+         <width>151</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>AI Detection (LSB Prob.)</string>
        </property>
       </widget>
      </widget>
@@ -498,8 +524,8 @@
       </property>
       <property name="geometry">
        <rect>
-        <x>770</x>
-        <y>250</y>
+        <x>740</x>
+        <y>280</y>
         <width>111</width>
         <height>41</height>
        </rect>
@@ -511,8 +537,8 @@
      <widget class="QPushButton" name="btn_compute">
       <property name="geometry">
        <rect>
-        <x>770</x>
-        <y>200</y>
+        <x>620</x>
+        <y>280</y>
         <width>111</width>
         <height>41</height>
        </rect>
@@ -524,10 +550,10 @@
      <widget class="QProgressBar" name="progressBar">
       <property name="geometry">
        <rect>
-        <x>900</x>
-        <y>210</y>
-        <width>291</width>
-        <height>20</height>
+        <x>620</x>
+        <y>330</y>
+        <width>231</width>
+        <height>21</height>
        </rect>
       </property>
       <property name="value">
@@ -537,10 +563,10 @@
      <widget class="QGroupBox" name="groupBox">
       <property name="geometry">
        <rect>
-        <x>1140</x>
+        <x>1110</x>
         <y>10</y>
-        <width>101</width>
-        <height>121</height>
+        <width>121</width>
+        <height>151</height>
        </rect>
       </property>
       <property name="title">
@@ -549,8 +575,8 @@
       <widget class="QPushButton" name="btn_load_profile">
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>30</y>
+         <x>20</x>
+         <y>40</y>
          <width>75</width>
          <height>31</height>
         </rect>
@@ -562,8 +588,8 @@
       <widget class="QPushButton" name="btn_save_profile">
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>70</y>
+         <x>20</x>
+         <y>90</y>
          <width>75</width>
          <height>31</height>
         </rect>
@@ -576,54 +602,15 @@
      <widget class="QPushButton" name="btn_export_report">
       <property name="geometry">
        <rect>
-        <x>1140</x>
-        <y>140</y>
+        <x>1120</x>
+        <y>180</y>
         <width>101</width>
-        <height>31</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
        <string>Export Results...</string>
       </property>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_2">
-      <property name="geometry">
-       <rect>
-        <x>350</x>
-        <y>180</y>
-        <width>401</width>
-        <height>80</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>File Matching Pattern</string>
-      </property>
-      <widget class="QLabel" name="label">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>40</y>
-         <width>121</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Stego/Extract Pattern:</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="txt_file_pattern">
-       <property name="geometry">
-        <rect>
-         <x>130</x>
-         <y>40</y>
-         <width>251</width>
-         <height>24</height>
-        </rect>
-       </property>
-       <property name="placeholderText">
-        <string>stego_{ID}_..._{KEYWORD}.ext</string>
-       </property>
-      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_2">
