@@ -1,5 +1,6 @@
 # reporting.py
 # Advanced Reporting Module with Executive Summary, Risk Charts, and Professional Styling.
+# Updated for v3.1 Hybrid AI Engine
 
 from pathlib import Path
 from fpdf import FPDF
@@ -19,9 +20,11 @@ import matplotlib.pyplot as plt
 # Import helper
 from utils import fmt_val
 
-# --- CONSTANTS FOR RISK LEVELS ---
-RISK_HIGH_THRESH = 0.85
-RISK_MED_THRESH = 0.40
+# --- CONSTANTS FOR RISK LEVELS (v3.1 Calibrated) ---
+# We observed that AI models could give approximately 60% natural "False Positives" in complex images like "Baboon".
+# Therefore, we adjusted the thresholds.
+RISK_HIGH_THRESH = 0.80  # 80% and above guaranteed STEGO
+RISK_MED_THRESH = 0.50   # 50% - 80% SUSPICIOUS (or very complex tissue)
 
 def get_risk_level(score):
     """Returns (Level Name, Color Tuple RGB) based on score."""
@@ -30,7 +33,7 @@ def get_risk_level(score):
         if s >= RISK_HIGH_THRESH:
             return "CRITICAL / STEGO", (220, 53, 69) # Red
         elif s >= RISK_MED_THRESH:
-            return "SUSPICIOUS", (255, 193, 7) # Orange/Yellow
+            return "SUSPICIOUS / COMPLEX", (255, 140, 0) # Dark Orange
         else:
             return "SAFE / CLEAN", (40, 167, 69) # Green
     except:
@@ -67,7 +70,7 @@ def generate_risk_pie_chart(data_rows):
     colors = []
     for l in labels:
         if l == "Safe": colors.append('#28a745')
-        elif l == "Suspicious": colors.append('#ffc107')
+        elif l == "Suspicious": colors.append('#ff8c00')
         elif l == "Critical": colors.append('#dc3545')
         else: colors.append('#6c757d')
 
@@ -75,35 +78,9 @@ def generate_risk_pie_chart(data_rows):
     wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct='%1.1f%%',
                                       startangle=90, colors=colors, textprops=dict(color="black"))
     ax.axis('equal') 
-    plt.title("Steganography Risk Distribution", fontsize=12, fontweight='bold')
+    plt.title("AI Detection Distribution", fontsize=12, fontweight='bold')
     plt.tight_layout()
 
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=100)
-    plt.close(fig)
-    buf.seek(0)
-    return buf
-
-def generate_metric_plot(data_rows: list[dict], metric_key: str):
-    """Creates a bar chart for a specific metric."""
-    labels, values = [], []
-    for row in data_rows:
-        metric_val = row.get("metrics", {}).get(metric_key)
-        if metric_val is not None:
-            try:
-                values.append(float(metric_val))
-                labels.append(str(row.get('id', '?')))
-            except: continue
-    
-    if not values: return None
-
-    fig, ax = plt.subplots(figsize=(10, 4))
-    bars = ax.bar(labels, values, color='#4a90e2')
-    ax.set_title(f"Analysis: {metric_key}", fontsize=10)
-    ax.set_ylabel("Score")
-    ax.set_xlabel("Test IDs")
-    ax.grid(axis='y', linestyle='--', alpha=0.5)
-    
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=100)
     plt.close(fig)
@@ -113,9 +90,9 @@ def generate_metric_plot(data_rows: list[dict], metric_key: str):
 class PDFReport(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 15)
-        self.cell(0, 10, 'StegoTester Analysis Report', 0, 1, 'C')
+        self.cell(0, 10, 'StegoTester v3.1 Analysis Report', 0, 1, 'C') # Version Updated
         self.set_font('Arial', 'I', 8)
-        self.cell(0, 5, f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M")}', 0, 1, 'C')
+        self.cell(0, 5, f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M")} | Engine: Hybrid AI', 0, 1, 'C')
         self.ln(5)
         self.line(10, 25, 200, 25)
         self.ln(10)
@@ -123,7 +100,7 @@ class PDFReport(FPDF):
     def footer(self):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+        self.cell(0, 10, f'Page {self.page_no()} - StegoTester Pro', 0, 0, 'C')
 
 def save_pdf_table(data_rows: list[dict], path: str, timestamp: str):
     """
@@ -155,6 +132,14 @@ def save_pdf_table(data_rows: list[dict], path: str, timestamp: str):
     total_tests = len(data_rows)
     pdf.set_font("Arial", '', 10)
     pdf.cell(0, 10, f"Total Tests Conducted: {total_tests}", ln=True, align='C')
+    pdf.ln(5)
+    
+    # 3. Methodology Note (New in v3.1)
+    pdf.set_font("Arial", 'I', 9)
+    pdf.multi_cell(0, 5, "Methodology Note: This report uses a Hybrid Detection Engine. "
+                         "Audio files are first screened by a mathematical 'Gatekeeper' (LSB Transition Rate). "
+                         "Files passing this check, and all images, are analyzed by trained Machine Learning models. "
+                         "Scores between 0.50-0.80 may indicate high textural complexity rather than hidden data.")
     pdf.ln(10)
 
     # --- PAGE 2+: DETAILED FINDINGS ---
@@ -170,7 +155,7 @@ def save_pdf_table(data_rows: list[dict], path: str, timestamp: str):
         
         # Determine Risk Level for this specific row
         ai_score = metrics.get("image_ai_detection") or metrics.get("audio_ai_detection")
-        risk_label, risk_color = get_risk_level(ai_score) if ai_score else ("NOT ANALYZED", (100,100,100))
+        risk_label, risk_color = get_risk_level(ai_score) if ai_score is not None else ("NOT ANALYZED", (100,100,100))
 
         # --- Test Card Header ---
         pdf.set_fill_color(240, 240, 240)
@@ -183,47 +168,56 @@ def save_pdf_table(data_rows: list[dict], path: str, timestamp: str):
         # Draw Risk Badge
         pdf.set_font("Arial", 'B', 10)
         pdf.set_text_color(*risk_color)
-        pdf.cell(0, 8, f"VERDICT: {risk_label}", border=0, align='R', ln=True)
+        
+        # Format Score Percentage
+        score_str = f"({float(ai_score)*100:.1f}%)" if ai_score is not None else ""
+        pdf.cell(0, 8, f"VERDICT: {risk_label} {score_str}", border=0, align='R', ln=True)
         pdf.set_text_color(0, 0, 0) # Reset to black
         
         # --- File Info Section ---
         pdf.set_font("Arial", '', 9)
         
+        type_prefix = ""
         # Audio
         if "audio" in pairs:
+            type_prefix = "audio"
             orig = Path(pairs["audio"][0]).name
             cand = Path(pairs["audio"][1]).name
-            pdf.cell(95, 6, f"Orig Audio: {orig[:35]}...", border='B')
-            pdf.cell(95, 6, f"Stego Audio: {cand[:35]}...", border='B', ln=True)
+            pdf.cell(95, 6, f"Orig: {orig[:40]}", border='B')
+            pdf.cell(95, 6, f"Cand: {cand[:40]}", border='B', ln=True)
         # Image
-        if "image" in pairs:
+        elif "image" in pairs:
+            type_prefix = "image"
             orig = Path(pairs["image"][0]).name
             cand = Path(pairs["image"][1]).name
-            pdf.cell(95, 6, f"Orig Image: {orig[:35]}...", border='B')
-            pdf.cell(95, 6, f"Stego Image: {cand[:35]}...", border='B', ln=True)
+            pdf.cell(95, 6, f"Orig: {orig[:40]}", border='B')
+            pdf.cell(95, 6, f"Cand: {cand[:40]}", border='B', ln=True)
         # Text
-        if "text" in pairs:
+        elif "text" in pairs:
+            type_prefix = "text"
             orig = Path(pairs["text"][0]).name
             cand = Path(pairs["text"][1]).name
-            pdf.cell(95, 6, f"Orig Text: {orig[:35]}...", border='B')
-            pdf.cell(95, 6, f"Stego Text: {cand[:35]}...", border='B', ln=True)
+            pdf.cell(95, 6, f"Orig: {orig[:40]}", border='B')
+            pdf.cell(95, 6, f"Cand: {cand[:40]}", border='B', ln=True)
 
         pdf.ln(2)
 
         # --- Metrics Grid ---
-        # Print metrics in 3 columns
         metric_keys = sorted(metrics.keys())
         col_width = 63
         
-        pdf.set_font("Courier", '', 8) # Monospace for alignment
+        pdf.set_font("Courier", '', 8) # Monospace
         
         count = 0
         for key in metric_keys:
+            # Skip explicit AI keys in the grid as they are in the header, 
+            # BUT keep them if you want to see the raw number.
+            clean_key = key.replace("audio_", "").replace("image_", "").replace("text_", "").upper()
+            
             # Highlight AI Detection in bold
             is_ai = "ai_detection" in key
             if is_ai: pdf.set_font("Courier", 'B', 8)
             
-            clean_key = key.replace("audio_", "").replace("image_", "").replace("text_", "").upper()
             val = fmt_val(metrics[key])
             pdf.cell(col_width, 5, f"{clean_key}: {val}", border=0)
             
@@ -243,14 +237,14 @@ def save_pdf_table(data_rows: list[dict], path: str, timestamp: str):
 
     pdf.output(path)
 
-# --- Standard Exports (Keep these as is) ---
+# --- Standard Exports ---
 def _get_all_metric_keys(data_rows: list[dict]) -> list[str]:
     keys = set()
     for row in data_rows: keys |= set((row.get("metrics") or {}).keys())
     return sorted(keys)
 
 def save_txt_table(data_rows, path, timestamp):
-    lines = [f"STEGANOGRAPHY REPORT - {timestamp}", "="*60]
+    lines = [f"STEGANOGRAPHY REPORT v3.1 - {timestamp}", "="*60]
     for row in data_rows:
         lines.append(f"ID: {row.get('id')}")
         for k,v in row.get("metrics", {}).items(): lines.append(f"  {k}: {fmt_val(v)}")
@@ -263,7 +257,7 @@ def save_json_table(data_rows, path, timestamp):
         elif isinstance(obj, list): return [convert_infinities(elem) for elem in obj]
         elif isinstance(obj, float) and math.isinf(obj): return "Infinity" if obj > 0 else "-Infinity"
         else: return obj
-    data = {"meta": {"timestamp": timestamp}, "results": convert_infinities(data_rows)}
+    data = {"meta": {"timestamp": timestamp, "version": "3.1"}, "results": convert_infinities(data_rows)}
     with open(path, 'w', encoding='utf-8') as f: json.dump(data, f, indent=4)
 
 def save_csv_table(data_rows, path, timestamp):

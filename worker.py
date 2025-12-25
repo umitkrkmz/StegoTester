@@ -2,9 +2,17 @@
 # Contains the MetricWorker class that runs the heavy metric calculations
 # on a background thread to keep the UI responsive.
 
+import joblib 
+import os
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal
-from utils import group_files_smart, calculate_image_stego_prob, calculate_audio_stego_prob # Utility functions
+# Import utils
+from utils import (
+    group_files_smart, 
+    extract_image_features, 
+    extract_audio_features, 
+    calculate_gatekeeper_score
+)
 
 # Import reporting functions
 import reporting
@@ -58,7 +66,6 @@ METRIC_REGISTRY = {
     "audio_byte_accuracy": audio_byte_accuracy,
     "audio_exact_match": audio_exact_match,
     
-    "audio_ai_detection": calculate_audio_stego_prob, # AI-based stego detection
 
     # Image Metrics
     "image_mse": image_mse,
@@ -71,7 +78,6 @@ METRIC_REGISTRY = {
     "image_byte_accuracy": image_byte_accuracy,
     "image_exact_match": image_exact_match,
     
-    "image_ai_detection": calculate_image_stego_prob, # AI-based stego detection
 
     # Text Metrics
     "text_similarity": text_similarity,
@@ -81,6 +87,9 @@ METRIC_REGISTRY = {
     "text_char_accuracy": char_accuracy,
     "text_bitwise_ber": text_bitwise_ber,
 }
+
+# --- GATEKEEPER CONSTANT ---
+AUDIO_LSB_THRESHOLD = 0.455
 
 # ---------------- Metric Worker ----------------
 class MetricWorker(QObject):
@@ -93,12 +102,33 @@ class MetricWorker(QObject):
         self.refs = refs
         self.groups = groups
         self.metrics = metrics
+        
+        # --- Load Models ---
+        self.img_model = None
+        self.aud_model = None
+        self._load_models()
+        
+    def _load_models(self):
+        """The application loads the models once when it starts."""
+        try:
+            base_path = Path(__file__).parent / "models"
+            img_model_path = base_path / "stego_model_image.pkl"
+            aud_model_path = base_path / "stego_model_audio.pkl"
+            
+            if img_model_path.exists():
+                self.img_model = joblib.load(img_model_path)
+            
+            if aud_model_path.exists():
+                self.aud_model = joblib.load(aud_model_path)
+                
+        except Exception as e:
+            print(f"Model yükleme hatası: {e}")
+            # Even if there's an error, the application won't crash; the AI ​​results will simply return 0.0
 
     def run(self):
         """Calculates metrics based on ID matching from group_files_smart."""
         try:
-            data_rows = []
-            
+            data_rows = [] 
             total_groups = len(self.groups)
             if total_groups == 0:
                 self.progress.emit(100)
@@ -115,20 +145,42 @@ class MetricWorker(QObject):
 
                 # --- Audio Metrics ---
                 # Checks if we have an original audio reference and a candidate stego file
-                if self.metrics["audio"] and str_gid in self.refs["audio"] and data["stego"]:
+                if str_gid in self.refs["audio"] and data["stego"]:
                     ref_path = self.refs["audio"][str_gid]
-                    cmp_path = data["stego"][0] # Take the first match
-                    
+                    cmp_path = data["stego"][0]
                     row["pairs"]["audio"] = (ref_path, cmp_path)
                     
-                    for met_name in self.metrics["audio"]:
-                        metric_key = f"audio_{met_name}"
-                        if metric_key in METRIC_REGISTRY:
+                    # 1. Standart Metrikler
+                    if self.metrics["audio"]:
+                        for met_name in self.metrics["audio"]:
+                            if met_name == "ai_detection": continue # AI'yı ayrı işleyeceğiz
+                            
+                            key = f"audio_{met_name}"
+                            if key in METRIC_REGISTRY:
+                                try:
+                                    row["metrics"][key] = METRIC_REGISTRY[key](ref_path, cmp_path)
+                                except: pass
+                        
+                        # 2. AI & GATEKEEPER DETECTION
+                        if "ai_detection" in self.metrics["audio"]:
+                            ai_score = 0.0
                             try:
-                                metric_func = METRIC_REGISTRY[metric_key]
-                                row["metrics"][metric_key] = metric_func(ref_path, cmp_path)
+                                # A) Gatekeeper Check (Matematiksel Kontrol)
+                                trans_rate = calculate_gatekeeper_score(cmp_path)
+                                if trans_rate > AUDIO_LSB_THRESHOLD:
+                                    # LSB çok dağınık, kesin Stego. AI'ya sormaya gerek yok.
+                                    ai_score = 1.0 
+                                else:
+                                    # B) Dedektif Check (AI Model)
+                                    if self.aud_model:
+                                        features = extract_audio_features(cmp_path)
+                                        if features is not None:
+                                            # predict_proba -> [[prob_clean, prob_stego]]
+                                            ai_score = self.aud_model.predict_proba(features)[0][1]
                             except Exception as e:
-                                print(f"Error calculating {metric_key}: {e}")
+                                print(f"Audio AI Error: {e}")
+                            
+                            row["metrics"]["audio_ai_detection"] = ai_score
 
                 # --- Image Metrics ---
                 # Priority: Compare Original vs Stego (common for PSNR/SSIM)
@@ -137,18 +189,32 @@ class MetricWorker(QObject):
                 if data["stego"]: target_img = data["stego"][0]
                 elif data["extract"]: target_img = data["extract"][0]
 
-                if self.metrics["image"] and str_gid in self.refs["image"] and target_img:
+                if str_gid in self.refs["image"] and target_img:
                     ref_path = self.refs["image"][str_gid]
                     row["pairs"]["image"] = (ref_path, target_img)
                     
-                    for met_name in self.metrics["image"]:
-                        metric_key = f"image_{met_name}"
-                        if metric_key in METRIC_REGISTRY:
+                    if self.metrics["image"]:
+                        for met_name in self.metrics["image"]:
+                            if met_name == "ai_detection": continue
+                            
+                            key = f"image_{met_name}"
+                            if key in METRIC_REGISTRY:
+                                try:
+                                    row["metrics"][key] = METRIC_REGISTRY[key](ref_path, target_img)
+                                except: pass
+                        
+                        # AI DETECTION (IMAGE)
+                        if "ai_detection" in self.metrics["image"]:
+                            ai_score = 0.0
                             try:
-                                metric_func = METRIC_REGISTRY[metric_key]
-                                row["metrics"][metric_key] = metric_func(ref_path, target_img)
+                                if self.img_model:
+                                    features = extract_image_features(target_img)
+                                    if features is not None:
+                                        ai_score = self.img_model.predict_proba(features)[0][1]
                             except Exception as e:
-                                print(f"Error calculating {metric_key}: {e}")
+                                print(f"Image AI Error: {e}")
+                            
+                            row["metrics"]["image_ai_detection"] = ai_score
 
                 # --- Text Metrics ---
                 target_text = None

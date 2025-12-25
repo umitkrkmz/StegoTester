@@ -1,19 +1,25 @@
 # utils.py
 import re
+import math
 from pathlib import Path
 from collections import defaultdict
-from PIL import Image
-import imagehash
 import numpy as np
 import soundfile as sf
+import imagehash
+from PIL import Image
 from scipy.spatial.distance import cosine
-import math
+
+# --- AI Feature Extraction Imports ---
+import cv2
+import pandas as pd
+import librosa
+from scipy.stats import entropy, skew, kurtosis
 
 # --- Constants ---
 IMG_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".gif", ".webp"}
 AUD_EXT = {".wav", ".flac", ".mp3"}
 TXT_EXT = {".txt", ".bin", ".log"}
-STOP_WORDS = {"orig", "original", "stego", "extract", "audio", "image", "text", "file", "output", "test", "tonal", "speech", "melodik", "noise"}
+STOP_WORDS = {"orig", "original", "stego", "extract", "audio", "image", "text", "file", "output", "test"}
 
 # --- Helper Functions ---
 def fmt_val(v) -> str:
@@ -28,116 +34,120 @@ def fmt_val(v) -> str:
         return f"{fval:.4f}"
     except: return str(v)
 
-# --- AI / STATISTICAL DETECTION ENGINES ---
+# --- AI FEATURE EXTRACTION ENGINES ---
 
-def calculate_image_stego_prob(ref_path, cmp_path):
+def extract_image_features(img_path):
     """
-    Resimler için Fark Analizi:
-    Orijinal ve Aday resim arasındaki farkı (residual) analiz eder.
-    Eğer fark yoksa (MSE=0) -> %0.
-    Eğer fark çok rastgele ise -> Yüksek İhtimal.
+    Extracts features from a trained Image model (RandomForest/GBM). 
+    Columns: ['img_mean', 'img_std', 'img_lsb_entropy', 'img_apd_mean', 'img_edge_density', 'img_skew']
     """
     try:
-        # 1. Open the images
-        img_ref = Image.open(ref_path).convert('RGB')
-        img_cmp = Image.open(cmp_path).convert('RGB')
+        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
+        if img is None: return None
         
-        # Size control
-        if img_ref.size != img_cmp.size:
-            return 1.0 # If the dimensions are different, it has definitely been tampered with.
-            
-        arr_ref = np.array(img_ref, dtype=np.int16)
-        arr_cmp = np.array(img_cmp, dtype=np.int16)
+        # 1. Basic Statistics
+        img_mean = np.mean(img)
+        img_std = np.std(img)
+        img_skew = skew(img.flatten())
         
-        # 2. Calculate the Difference (Residual)
-        diff = np.abs(arr_ref - arr_cmp)
+        # 2. LSB Analysis (Entropy)
+        lsb = img & 1
+        counts = np.bincount(lsb.flatten(), minlength=2)
+        prob = counts / (np.sum(counts) + 1e-10)
+        lsb_ent = entropy(prob, base=2)
         
-        # If there is no difference, it is clean.
-        if np.sum(diff) == 0:
-            return 0.00
-            
-        # 3. Look only at LSB differences (Bitwise XOR is also logical, but difference is sufficient) 
-        # Calculate the entropy of the pixels where the difference exists
-        flat_diff = diff.flatten()
-        non_zero_diff = flat_diff[flat_diff > 0]
+        # 3. APD (Adjacent Pixel Difference)
+        diff_h = np.abs(img[:, :-1] - img[:, 1:])
+        diff_v = np.abs(img[:-1, :] - img[1:, :])
+        apd = (np.mean(diff_h) + np.mean(diff_v)) / 2.0
         
-        if len(non_zero_diff) == 0: 
-            return 0.0
-            
-        # Histogram and Entropy
-        counts = np.bincount(non_zero_diff)
-        probs = counts / len(non_zero_diff)
-        entropy = -np.sum([p * math.log2(p) for p in probs if p > 0])
+        # 4. Edge Density
+        edges = cv2.Canny(img, 100, 200)
+        edge_dens = np.mean(edges) / 255.0
         
-        # Interpretation:
-        # A difference with high entropy indicates encrypted data.
-        # The maximum entropy is 8 for 8-bit, but stego differences are generally low.
-        # Let's generate a score between 0 and 1 using a simple sigmoid function.
-        # Let's assume the threshold value is 0.5.
-        score = 1.0 / (1.0 + math.exp(-(entropy - 0.5) * 2))
-        
-        return round(score, 4)
-
+        # DataFrame format
+        features = pd.DataFrame([{
+            'img_mean': img_mean,
+            'img_std': img_std,
+            'img_lsb_entropy': lsb_ent,
+            'img_apd_mean': apd,
+            'img_edge_density': edge_dens,
+            'img_skew': img_skew
+        }])
+        return features
     except Exception as e:
-        print(f"Image detection error: {e}")
-        return 0.0
+        print(f"Image Feature Error: {e}")
+        return None
 
-def calculate_audio_stego_prob(ref_path, cmp_path):
+def extract_audio_features(aud_path):
     """
-    Precise Difference Analysis for Audio:
-    Vector/Spread Spectrum methods create very little difference in amplitude,
-    but affect the overall file. Therefore, we will look at the 'Spread Rate'.
+    Extracts features for the trained audio model.
+    Columns: ['aud_lsb_entropy', 'aud_lsb_corr', 'aud_lsb_trans', 'aud_kurtosis',
+        'aud_spec_flatness', 'aud_mfcc_mean', 'aud_spec_cent_mean', 'aud_rms_mean']
     """
     try:
-        # Read the audio (raw data in int16 format)
-        y_ref, sr_ref = sf.read(ref_path, dtype='int16')
-        y_cmp, sr_cmp = sf.read(cmp_path, dtype='int16')
-        
-        # Equalize the lengths
-        min_len = min(len(y_ref), len(y_cmp))
-        y_ref = y_ref[:min_len]
-        y_cmp = y_cmp[:min_len]
-        
-        # If it's stereo, then flatten it.
-        if y_ref.ndim > 1: y_ref = y_ref.flatten()
-        if y_cmp.ndim > 1: y_cmp = y_cmp.flatten()
-        
-        # Calculate the absolute difference.
-        diff = np.abs(y_ref - y_cmp)
-        
-        # If there is no difference (If the files are the same)
-        if np.sum(diff) == 0:
-            return 0.00
+        # --- PART 1: RAW BIT ANALYSIS ---
+        data_int, samplerate = sf.read(str(aud_path), dtype='int16')
+        if len(data_int.shape) > 1:
+            data_int = np.mean(data_int, axis=1).astype(np.int16)
             
-        # --- LOGIC: COVERAGE DENSITY ---
-        # Vector steganography does not increase amplitude, it increases the number of changing samples.
+        lsb = data_int & 1
         
-        # 1. How many samples have been changed?
-        non_zero_count = np.count_nonzero(diff)
-        total_samples = len(diff)
+        # LSB Correlation
+        lsb_corr = 0
+        if len(lsb) > 1:
+            c = np.corrcoef(lsb[:-1], lsb[1:])[0, 1]
+            lsb_corr = 0 if np.isnan(c) else c
+            
+        # Transition Rate
+        trans = np.sum(np.abs(np.diff(lsb))) / len(lsb)
         
-        # 2. Change Rate
-        change_rate = non_zero_count / total_samples
+        # LSB Entropy
+        counts = np.bincount(lsb.flatten(), minlength=2)
+        prob = counts / (np.sum(counts) + 1e-10)
+        lsb_ent = entropy(prob, base=2)
         
-        # 3. Scoring (Sensitivity Adjustment)
-        # If more than 5% of the sound has changed, it is definitely stego. 
-        # Therefore, we multiply the ratio by 20 (0.05 * 20 = 1.0)
-        # So even a 1% change raises suspicion of 0.20 (20%).
-        prob = min(change_rate * 20.0, 1.0)
+        aud_kurtosis = kurtosis(data_int)
         
-        # If the rate of change is very low but the amplitude difference is high (Classic LSB)
-        # Let's not miss that either:
-        max_diff = np.max(diff)
-        if max_diff > 0 and prob < 0.1:
-             # At least there's a change, let's give it a 0.1 so the user notices.
-             prob = max(prob, 0.1)
-
-        return round(prob, 4)
+        # --- PART 2: SPECTRAL ANALYSIS (Librosa) ---
+        y, sr = librosa.load(str(aud_path), sr=22050)
+        if len(y) < 512: y = np.pad(y, (0, 512 - len(y)))
         
+        mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13))
+        flat = np.mean(librosa.feature.spectral_flatness(y=y))
+        cent = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
+        rms = np.mean(librosa.feature.rms(y=y))
+        
+        features = pd.DataFrame([{
+            'aud_lsb_entropy': lsb_ent,
+            'aud_lsb_corr': lsb_corr,
+            'aud_lsb_trans': trans,
+            'aud_kurtosis': aud_kurtosis,
+            'aud_spec_flatness': flat,
+            'aud_mfcc_mean': mfcc,
+            'aud_spec_cent_mean': cent,
+            'aud_rms_mean': rms
+        }])
+        return features
     except Exception as e:
-        print(f"Audio detection error: {e}")
-        return 0.0
+        print(f"Audio Feature Error: {e}")
+        return None
 
+def calculate_gatekeeper_score(aud_path):
+    """
+    Quick mathematical check (Gatekeeper).
+    Calculates Audio LSB Transition Rate.
+    """
+    try:
+        data_int, _ = sf.read(str(aud_path), dtype='int16')
+        if len(data_int.shape) > 1: data_int = data_int[:, 0] # Sadece ilk kanal
+        lsb = data_int & 1
+        # Calculate transition rate
+        trans_rate = np.sum(np.abs(np.diff(lsb))) / (len(lsb) - 1)
+        return trans_rate
+    except:
+        return 0.0
+    
 # --- Matching & Fingerprinting ---
 def calculate_phash(image_path):
     try:
